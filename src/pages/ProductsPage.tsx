@@ -1,6 +1,7 @@
 import { CircleCheck, CircleX, FolderTree, Pencil, Plus, ShoppingBasket, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { del, get, post, put } from "../api";
+import ImageUpload from "../components/ImageUpload";
 import { TableSkeleton } from "../components/Skeleton";
 import type { Category, Product, Restaurant } from "../types";
 
@@ -55,6 +56,7 @@ export default function ProductsPage() {
       restaurant_id: storeId,
       name_uz: editCat.name_uz,
       name_ru: editCat.name_ru || editCat.name_uz,
+      image_url: editCat.image_url ?? null,
       sort_order: editCat.sort_order ?? categories.length,
     };
     if (editCat.id) await put(`/admin/categories/${editCat.id}`, body);
@@ -175,7 +177,14 @@ export default function ProductsPage() {
               <tbody>
                 {categories.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50/60">
-                    <td className="td font-medium text-slate-900">{c.name_uz}</td>
+                    <td className="td font-medium text-slate-900">
+                      <div className="flex items-center gap-3">
+                        {c.image_url
+                          ? <img src={c.image_url} alt="" className="h-9 w-12 rounded-lg object-cover bg-slate-100" />
+                          : <span className="h-9 w-12 rounded-lg bg-slate-100" />}
+                        {c.name_uz}
+                      </div>
+                    </td>
                     <td className="td">{c.name_ru}</td>
                     <td className="td">{products.filter((p) => p.category_id === c.id).length}</td>
                     <td className="td text-right">
@@ -209,11 +218,12 @@ export default function ProductsPage() {
               onChange={(e) => setEditing({ ...editing, name_uz: e.target.value })} />
             <input className="input" placeholder="Название (ru)" value={editing.name_ru ?? ""}
               onChange={(e) => setEditing({ ...editing, name_ru: e.target.value })} />
-            <input className="input" placeholder="Rasm URL" value={editing.image_url ?? ""}
-              onChange={(e) => setEditing({ ...editing, image_url: e.target.value })} />
-            {editing.image_url && (
-              <img src={editing.image_url} alt="" className="h-24 w-full rounded-lg object-cover bg-slate-100" />
-            )}
+            <ImageUpload
+              label="Mahsulot rasmi"
+              value={editing.image_url}
+              heightClass="h-28"
+              onChange={(url) => setEditing({ ...editing, image_url: url })}
+            />
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="text-xs text-slate-500">Sotuv narxi (so'm)</span>
@@ -257,6 +267,12 @@ export default function ProductsPage() {
               onChange={(e) => setEditCat({ ...editCat, name_uz: e.target.value })} />
             <input className="input" placeholder="Название (ru) — например: Фрукты" value={editCat.name_ru ?? ""}
               onChange={(e) => setEditCat({ ...editCat, name_ru: e.target.value })} />
+            <ImageUpload
+              label="Kategoriya rasmi (kartochka foni)"
+              value={editCat.image_url}
+              heightClass="h-28"
+              onChange={(url) => setEditCat({ ...editCat, image_url: url })}
+            />
             <div className="flex gap-2 justify-end pt-2">
               <button className="btn-ghost" onClick={() => setEditCat(null)}><CircleX size={16} /> Bekor</button>
               <button className="btn" onClick={saveCat}><CircleCheck size={16} /> Saqlash</button>

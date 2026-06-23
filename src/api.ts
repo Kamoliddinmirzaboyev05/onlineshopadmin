@@ -38,3 +38,14 @@ export const put = <T>(p: string, body: unknown) =>
 export const patch = <T>(p: string, body: unknown) =>
   api<T>(p, { method: "PATCH", body: JSON.stringify(body) });
 export const del = (p: string) => api<void>(p, { method: "DELETE" });
+
+// Rasm faylini yuklash (multipart). Content-Type ni brauzer o'zi qo'yadi.
+export async function uploadImage(file: File): Promise<string> {
+  const form = new FormData();
+  form.append("file", file);
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${BASE}/admin/upload`, { method: "POST", body: form, headers });
+  if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+  return (await res.json()).url as string;
+}
