@@ -1,3 +1,4 @@
+import { LogIn, UtensilsCrossed } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../store";
@@ -24,25 +25,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <form onSubmit={submit} className="card p-8 w-80 space-y-4">
-        <h1 className="text-2xl font-bold text-brand text-center">All Foods Admin</h1>
-        <input
-          className="input"
-          placeholder="Login"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <input
-          className="input"
-          type="password"
-          placeholder="Parol"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+      <form onSubmit={submit} className="card p-8 w-full max-w-sm space-y-5">
+        <div className="flex flex-col items-center gap-3">
+          <span className="grid place-items-center h-14 w-14 rounded-2xl bg-brand text-white shadow-sm">
+            <UtensilsCrossed size={28} />
+          </span>
+          <div className="text-center">
+            <h1 className="text-xl font-bold tracking-tight">All Foods Admin</h1>
+            <p className="text-sm text-slate-500">Boshqaruv paneliga kirish</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <input
+            className="input"
+            placeholder="Login"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <input
+            className="input"
+            type="password"
+            placeholder="Parol"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <button className="btn w-full" disabled={loading}>
-          {loading ? "…" : "Kirish"}
+          <LogIn size={18} /> {loading ? "…" : "Kirish"}
         </button>
       </form>
     </div>

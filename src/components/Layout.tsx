@@ -1,13 +1,17 @@
+import {
+  Bike, LayoutDashboard, LogOut, MapPin, ReceiptText,
+  UtensilsCrossed, Users,
+} from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../store";
 
 const links = [
-  { to: "/", label: "📊 Dashboard", end: true },
-  { to: "/orders", label: "🧾 Buyurtmalar" },
-  { to: "/restaurants", label: "🍽 Restoranlar" },
-  { to: "/couriers", label: "🛵 Kuryerlar" },
-  { to: "/zones", label: "🗺 Hududlar" },
-  { to: "/users", label: "👥 Foydalanuvchilar" },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/orders", label: "Buyurtmalar", icon: ReceiptText },
+  { to: "/restaurants", label: "Restoranlar", icon: UtensilsCrossed },
+  { to: "/couriers", label: "Kuryerlar", icon: Bike },
+  { to: "/zones", label: "Hududlar", icon: MapPin },
+  { to: "/users", label: "Foydalanuvchilar", icon: Users },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -16,38 +20,60 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="w-60 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-5 text-xl font-bold text-brand">All Foods</div>
-        <nav className="flex-1 px-2 space-y-1">
-          {links.map((l) => (
-            <NavLink
-              key={l.to}
-              to={l.to}
-              end={l.end}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded-lg text-sm ${
-                  isActive ? "bg-brand text-white" : "text-gray-700 hover:bg-gray-100"
-                }`
-              }
-            >
-              {l.label}
-            </NavLink>
-          ))}
+      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0">
+        <div className="flex items-center gap-2 px-5 h-16 border-b border-slate-100">
+          <span className="grid place-items-center h-9 w-9 rounded-lg bg-brand text-white">
+            <UtensilsCrossed size={20} />
+          </span>
+          <span className="text-lg font-bold tracking-tight">All Foods</span>
+        </div>
+
+        <nav className="flex-1 px-3 py-4 space-y-1">
+          {links.map((l) => {
+            const Icon = l.icon;
+            return (
+              <NavLink
+                key={l.to}
+                to={l.to}
+                end={l.end}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                    isActive
+                      ? "bg-brand text-white shadow-sm"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  }`
+                }
+              >
+                <Icon size={18} />
+                {l.label}
+              </NavLink>
+            );
+          })}
         </nav>
-        <div className="p-4 border-t border-gray-100 text-sm">
-          <div className="text-gray-500">{admin?.username} · {admin?.role}</div>
+
+        <div className="p-4 border-t border-slate-100">
+          <div className="flex items-center gap-3 mb-3">
+            <span className="grid place-items-center h-9 w-9 rounded-full bg-brand/10 text-brand font-semibold uppercase">
+              {admin?.username?.[0] ?? "A"}
+            </span>
+            <div className="min-w-0">
+              <div className="text-sm font-medium truncate">{admin?.username}</div>
+              <div className="text-xs text-slate-400 capitalize">{admin?.role}</div>
+            </div>
+          </div>
           <button
             onClick={() => {
               logout();
               nav("/login");
             }}
-            className="mt-2 text-red-500"
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 transition"
           >
-            Chiqish
+            <LogOut size={16} /> Chiqish
           </button>
         </div>
       </aside>
-      <main className="flex-1 p-6 overflow-auto">{children}</main>
+
+      <main className="flex-1 ml-64 p-8 overflow-auto">{children}</main>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { get } from "../api";
+import { TableSkeleton } from "../components/Skeleton";
 
 interface UserRow {
   id: number;
@@ -13,18 +14,20 @@ interface UserRow {
 
 export default function UsersPage() {
   const [items, setItems] = useState<UserRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    get<UserRow[]>("/admin/users").then(setItems);
+    get<UserRow[]>("/admin/users").then((d) => { setItems(d); setLoading(false); });
   }, []);
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-5">Foydalanuvchilar</h1>
+      <h1 className="text-2xl font-bold tracking-tight mb-5">Foydalanuvchilar</h1>
+      {loading ? <TableSkeleton cols={5} /> : (
       <div className="card overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="bg-gray-50">
+            <tr className="bg-slate-50">
               <th className="th">Ism</th>
               <th className="th">Username</th>
               <th className="th">Telefon</th>
@@ -34,8 +37,8 @@ export default function UsersPage() {
           </thead>
           <tbody>
             {items.map((u) => (
-              <tr key={u.id}>
-                <td className="td font-medium">{u.first_name ?? "—"}</td>
+              <tr key={u.id} className="hover:bg-slate-50/60">
+                <td className="td font-medium text-slate-900">{u.first_name ?? "—"}</td>
                 <td className="td">{u.username ? `@${u.username}` : "—"}</td>
                 <td className="td">{u.phone ?? "—"}</td>
                 <td className="td uppercase">{u.language}</td>
@@ -45,6 +48,7 @@ export default function UsersPage() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }
