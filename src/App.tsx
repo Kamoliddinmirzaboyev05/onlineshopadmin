@@ -2,14 +2,13 @@ import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { hasToken } from "./api";
 import Layout from "./components/Layout";
-import CategoriesPage from "./pages/CategoriesPage";
-import CouriersPage from "./pages/CouriersPage";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import OrdersPage from "./pages/OrdersPage";
 import ProductsPage from "./pages/ProductsPage";
+import ReportsPage from "./pages/ReportsPage";
 import UsersPage from "./pages/UsersPage";
-import ZonesPage from "./pages/ZonesPage";
+import WarehousePage from "./pages/WarehousePage";
 import { useAuth } from "./store";
 
 function Protected({ children }: { children: React.ReactNode }) {
@@ -34,11 +33,10 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<Protected><DashboardPage /></Protected>} />
-      <Route path="/categories" element={<Protected><CategoriesPage /></Protected>} />
-      <Route path="/products" element={<Protected><ProductsPage /></Protected>} />
       <Route path="/orders" element={<Protected><OrdersPage /></Protected>} />
-      <Route path="/couriers" element={<Protected><CouriersPage /></Protected>} />
-      <Route path="/zones" element={<Protected><ZonesPage /></Protected>} />
+      <Route path="/products" element={<Protected><ProductsPage /></Protected>} />
+      <Route path="/warehouse" element={<Protected><WarehousePage /></Protected>} />
+      <Route path="/reports" element={<Protected><ReportsPage /></Protected>} />
       <Route path="/users" element={<Protected><UsersPage /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

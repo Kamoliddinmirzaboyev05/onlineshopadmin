@@ -30,6 +30,9 @@ export interface Product {
   description_ru?: string | null;
   image_url?: string | null;
   price: number;
+  cost: number;
+  stock: number;
+  low_stock_threshold: number;
   is_available: boolean;
   sort_order: number;
 }
@@ -63,32 +66,47 @@ export interface Order {
   items: OrderItem[];
 }
 
-export interface Courier {
-  id: number;
-  name: string;
-  phone?: string | null;
-  telegram_id?: number | null;
-  is_active: boolean;
-  is_busy: boolean;
-}
-
-export interface DeliveryZone {
-  id: number;
-  name: string;
-  fee: number;
-  min_order: number;
-  is_active: boolean;
-  polygon?: string | null;
+export interface TopProduct {
+  product_id: number;
+  name_uz: string;
+  image_url?: string | null;
+  quantity: number;
+  revenue: number;
+  profit: number;
 }
 
 export interface DashboardStats {
   orders_today: number;
   revenue_today: number;
+  profit_today: number;
+  orders_week: number;
+  revenue_week: number;
+  profit_week: number;
+  orders_month: number;
+  revenue_month: number;
+  profit_month: number;
   orders_total: number;
   revenue_total: number;
-  active_restaurants: number;
+  profit_total: number;
   pending_orders: number;
   users_total: number;
+  products_total: number;
+  low_stock_count: number;
+  top_products: TopProduct[];
+}
+
+export interface PeriodPoint {
+  period: string;
+  orders: number;
+  revenue: number;
+  profit: number;
+}
+
+export interface ReportsOut {
+  daily: PeriodPoint[];
+  weekly: PeriodPoint[];
+  monthly: PeriodPoint[];
+  top_products: TopProduct[];
 }
 
 export interface AdminUser {

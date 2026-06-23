@@ -16,3 +16,6 @@ dist
 
 # TS build info
 *.tsbuildinfo
+
+# PWA dev
+dev-dist

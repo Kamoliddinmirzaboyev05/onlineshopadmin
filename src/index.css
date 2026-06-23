@@ -38,3 +38,12 @@ body {
     @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
   }
 }
+
+/* Responsive: any card wrapping a table scrolls horizontally on narrow
+   screens. `.card:has(table)` (0,2,0) outranks the `.overflow-hidden`
+   utility (0,1,0), so it overrides without editing each page. */
+.card:has(> table),
+.card:has(table) {
+  overflow-x: auto;
+}
+

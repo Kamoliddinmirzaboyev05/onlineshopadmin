@@ -1,35 +1,54 @@
 import {
-  Bike, FolderTree, LayoutDashboard, LogOut, MapPin, ReceiptText,
-  ShoppingBasket, Store, Users,
+  BarChart3, LayoutDashboard, LogOut, Menu, ReceiptText,
+  ShoppingBasket, Store, Users, Warehouse, X,
 } from "lucide-react";
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../store";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/orders", label: "Buyurtmalar", icon: ReceiptText },
-  { to: "/categories", label: "Kategoriyalar", icon: FolderTree },
   { to: "/products", label: "Mahsulotlar", icon: ShoppingBasket },
-  { to: "/couriers", label: "Kuryerlar", icon: Bike },
-  { to: "/zones", label: "Hududlar", icon: MapPin },
+  { to: "/warehouse", label: "Ombor", icon: Warehouse },
+  { to: "/reports", label: "Hisobot", icon: BarChart3 },
   { to: "/users", label: "Foydalanuvchilar", icon: Users },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { admin, logout } = useAuth();
   const nav = useNavigate();
+  const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0">
+    <div className="min-h-screen">
+      {/* Mobile top bar */}
+      <header className="md:hidden sticky top-0 z-30 flex items-center gap-3 h-14 px-4 bg-white border-b border-slate-200">
+        <button className="icon-btn" onClick={() => setOpen(true)} aria-label="Menu"><Menu size={22} /></button>
+        <span className="grid place-items-center h-8 w-8 rounded-lg bg-brand text-white"><Store size={18} /></span>
+        <span className="font-bold tracking-tight">All Foods</span>
+      </header>
+
+      {/* Overlay (mobile, when drawer open) */}
+      {open && (
+        <div className="md:hidden fixed inset-0 bg-slate-900/50 z-40" onClick={() => setOpen(false)} />
+      )}
+
+      {/* Sidebar — static on desktop, drawer on mobile */}
+      <aside
+        className={`fixed inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-50 transform transition-transform duration-200 md:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
         <div className="flex items-center gap-2 px-5 h-16 border-b border-slate-100">
           <span className="grid place-items-center h-9 w-9 rounded-lg bg-brand text-white">
             <Store size={20} />
           </span>
           <span className="text-lg font-bold tracking-tight">All Foods</span>
+          <button className="icon-btn ml-auto md:hidden" onClick={() => setOpen(false)} aria-label="Yopish"><X size={20} /></button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {links.map((l) => {
             const Icon = l.icon;
             return (
@@ -37,6 +56,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 key={l.to}
                 to={l.to}
                 end={l.end}
+                onClick={() => setOpen(false)}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
                     isActive
@@ -74,7 +94,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 ml-64 p-8 overflow-auto">{children}</main>
+      <main className="md:ml-64 p-4 md:p-8 overflow-x-hidden">{children}</main>
     </div>
   );
 }

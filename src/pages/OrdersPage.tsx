@@ -2,7 +2,7 @@ import { MapPin, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { get, patch } from "../api";
 import { OrderListSkeleton } from "../components/Skeleton";
-import type { Courier, Order, OrderStatus } from "../types";
+import type { Order, OrderStatus } from "../types";
 
 const STATUSES: OrderStatus[] = [
   "pending", "confirmed", "preparing", "ready", "delivering", "delivered", "cancelled",
@@ -24,7 +24,6 @@ const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [couriers, setCouriers] = useState<Courier[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "">("");
   const [loading, setLoading] = useState(true);
 
@@ -36,16 +35,13 @@ export default function OrdersPage() {
     });
   };
   useEffect(() => {
-    get<Courier[]>("/admin/couriers").then(setCouriers);
-  }, []);
-  useEffect(() => {
     load();
     const iv = setInterval(load, 15000);
     return () => clearInterval(iv);
   }, [filter]);
 
-  const setStatus = async (id: number, status: OrderStatus, courier_id?: number) => {
-    await patch(`/admin/orders/${id}`, { status, courier_id });
+  const setStatus = async (id: number, status: OrderStatus) => {
+    await patch(`/admin/orders/${id}`, { status });
     load();
   };
 
@@ -99,14 +95,6 @@ export default function OrdersPage() {
                 onChange={(e) => setStatus(o.id, e.target.value as OrderStatus)}
               >
                 {STATUSES.map((s) => <option key={s} value={s}>{LABEL[s]}</option>)}
-              </select>
-              <select
-                className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white"
-                defaultValue=""
-                onChange={(e) => e.target.value && setStatus(o.id, o.status, +e.target.value)}
-              >
-                <option value="">Kuryer tayinlash…</option>
-                {couriers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
           </div>
