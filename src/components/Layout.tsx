@@ -1,6 +1,6 @@
 import {
-  Bike, LayoutDashboard, LogOut, MapPin, ReceiptText,
-  UtensilsCrossed, Users,
+  Bike, FolderTree, LayoutDashboard, LogOut, MapPin, ReceiptText,
+  ShoppingBasket, Store, Users,
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../store";
@@ -8,7 +8,8 @@ import { useAuth } from "../store";
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/orders", label: "Buyurtmalar", icon: ReceiptText },
-  { to: "/restaurants", label: "Restoranlar", icon: UtensilsCrossed },
+  { to: "/categories", label: "Kategoriyalar", icon: FolderTree },
+  { to: "/products", label: "Mahsulotlar", icon: ShoppingBasket },
   { to: "/couriers", label: "Kuryerlar", icon: Bike },
   { to: "/zones", label: "Hududlar", icon: MapPin },
   { to: "/users", label: "Foydalanuvchilar", icon: Users },
@@ -23,7 +24,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0">
         <div className="flex items-center gap-2 px-5 h-16 border-b border-slate-100">
           <span className="grid place-items-center h-9 w-9 rounded-lg bg-brand text-white">
-            <UtensilsCrossed size={20} />
+            <Store size={20} />
           </span>
           <span className="text-lg font-bold tracking-tight">All Foods</span>
         </div>

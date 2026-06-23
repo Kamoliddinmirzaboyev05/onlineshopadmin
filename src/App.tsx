@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { hasToken } from "./api";
 import Layout from "./components/Layout";
+import CategoriesPage from "./pages/CategoriesPage";
 import CouriersPage from "./pages/CouriersPage";
 import DashboardPage from "./pages/DashboardPage";
 import LoginPage from "./pages/LoginPage";
 import OrdersPage from "./pages/OrdersPage";
-import RestaurantMenuPage from "./pages/RestaurantMenuPage";
-import RestaurantsPage from "./pages/RestaurantsPage";
+import ProductsPage from "./pages/ProductsPage";
 import UsersPage from "./pages/UsersPage";
 import ZonesPage from "./pages/ZonesPage";
 import { useAuth } from "./store";
@@ -34,8 +34,8 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<Protected><DashboardPage /></Protected>} />
-      <Route path="/restaurants" element={<Protected><RestaurantsPage /></Protected>} />
-      <Route path="/restaurants/:id/menu" element={<Protected><RestaurantMenuPage /></Protected>} />
+      <Route path="/categories" element={<Protected><CategoriesPage /></Protected>} />
+      <Route path="/products" element={<Protected><ProductsPage /></Protected>} />
       <Route path="/orders" element={<Protected><OrdersPage /></Protected>} />
       <Route path="/couriers" element={<Protected><CouriersPage /></Protected>} />
       <Route path="/zones" element={<Protected><ZonesPage /></Protected>} />

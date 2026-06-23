@@ -1,41 +1,30 @@
-import { CircleCheck, CircleX, Pencil, Plus, Trash2, X } from "lucide-react";
+import { CircleCheck, CircleX, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
 import { del, get, post, put } from "../api";
 import { TableSkeleton } from "../components/Skeleton";
-import type { Category, Product } from "../types";
+import type { Category, Product, Restaurant } from "../types";
 
-export default function RestaurantMenuPage() {
-  const { id } = useParams();
-  const rid = Number(id);
+export default function ProductsPage() {
+  const [storeId, setStoreId] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
-  const [newCat, setNewCat] = useState({ uz: "", ru: "" });
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
-    setCategories(await get<Category[]>(`/admin/restaurants/${rid}/categories`));
-    setProducts(await get<Product[]>(`/admin/restaurants/${rid}/products`));
+  const loadData = async (sid: number) => {
+    setCategories(await get<Category[]>(`/admin/restaurants/${sid}/categories`));
+    setProducts(await get<Product[]>(`/admin/restaurants/${sid}/products`));
     setLoading(false);
   };
+
   useEffect(() => {
-    load();
-  }, [rid]);
+    get<Restaurant>("/admin/store").then((s) => { setStoreId(s.id); loadData(s.id); });
+  }, []);
 
-  const addCategory = async () => {
-    if (!newCat.uz.trim()) return;
-    await post("/admin/categories", {
-      restaurant_id: rid, name_uz: newCat.uz, name_ru: newCat.ru || newCat.uz, sort_order: categories.length,
-    });
-    setNewCat({ uz: "", ru: "" });
-    load();
-  };
-
-  const saveProduct = async () => {
-    if (!editing) return;
+  const save = async () => {
+    if (!editing || !storeId) return;
     const body = {
-      restaurant_id: rid,
+      restaurant_id: storeId,
       category_id: editing.category_id,
       name_uz: editing.name_uz ?? "",
       name_ru: editing.name_ru ?? editing.name_uz ?? "",
@@ -49,52 +38,34 @@ export default function RestaurantMenuPage() {
     if (editing.id) await put(`/admin/products/${editing.id}`, body);
     else await post("/admin/products", body);
     setEditing(null);
-    load();
+    loadData(storeId);
   };
+
+  const catName = (id: number) => categories.find((c) => c.id === id)?.name_uz ?? "—";
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight mb-5">Menyu boshqaruvi</h1>
-
-      {/* categories */}
-      <div className="card p-4 mb-6">
-        <h2 className="font-semibold mb-3">Kategoriyalar</h2>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {categories.map((c) => (
-            <span key={c.id} className="bg-slate-100 rounded-full pl-3 pr-1.5 py-1 text-sm flex items-center gap-1.5">
-              {c.name_uz}
-              <button className="grid place-items-center h-5 w-5 rounded-full text-slate-400 hover:bg-slate-200 hover:text-red-500 transition" onClick={() => del(`/admin/categories/${c.id}`).then(load)}><X size={13} /></button>
-            </span>
-          ))}
-          {categories.length === 0 && <span className="text-sm text-slate-400">Kategoriya yo'q</span>}
-        </div>
-        <div className="flex gap-2">
-          <input className="input" placeholder="Kategoriya (uz)" value={newCat.uz}
-            onChange={(e) => setNewCat({ ...newCat, uz: e.target.value })} />
-          <input className="input" placeholder="Категория (ru)" value={newCat.ru}
-            onChange={(e) => setNewCat({ ...newCat, ru: e.target.value })} />
-          <button className="btn whitespace-nowrap" onClick={addCategory}><Plus size={18} /> Qo'shish</button>
-        </div>
-      </div>
-
-      {/* products */}
-      <div className="flex justify-between items-center mb-3">
-        <h2 className="font-semibold">Mahsulotlar</h2>
+      <div className="flex justify-between items-center mb-1">
+        <h1 className="text-2xl font-bold tracking-tight">Mahsulotlar</h1>
         <button
           className="btn"
           disabled={categories.length === 0}
+          title={categories.length === 0 ? "Avval kategoriya qo'shing" : ""}
           onClick={() => setEditing({ category_id: categories[0]?.id, is_available: true, price: 0 })}
         >
-          <Plus size={18} /> Mahsulot
+          <Plus size={18} /> Qo'shish
         </button>
       </div>
+      <p className="text-slate-500 mb-5">
+        {categories.length === 0 ? "Avval Kategoriyalar bo'limidan kategoriya qo'shing." : "Har mahsulot bitta kategoriyaga biriktiriladi."}
+      </p>
 
       {loading ? <TableSkeleton cols={5} /> : (
       <div className="card overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="bg-slate-50">
-              <th className="th">Nomi</th>
+              <th className="th">Mahsulot</th>
               <th className="th">Kategoriya</th>
               <th className="th">Narx</th>
               <th className="th">Mavjud</th>
@@ -112,7 +83,7 @@ export default function RestaurantMenuPage() {
                     {p.name_uz}
                   </div>
                 </td>
-                <td className="td">{categories.find((c) => c.id === p.category_id)?.name_uz ?? "—"}</td>
+                <td className="td">{catName(p.category_id)}</td>
                 <td className="td">{p.price.toLocaleString()}</td>
                 <td className="td">
                   {p.is_available
@@ -122,13 +93,13 @@ export default function RestaurantMenuPage() {
                 <td className="td text-right">
                   <div className="inline-flex items-center gap-1">
                     <button className="icon-btn" title="Tahrirlash" onClick={() => setEditing(p)}><Pencil size={16} /></button>
-                    <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => del(`/admin/products/${p.id}`).then(load)}><Trash2 size={16} /></button>
+                    <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => storeId && del(`/admin/products/${p.id}`).then(() => loadData(storeId))}><Trash2 size={16} /></button>
                   </div>
                 </td>
               </tr>
             ))}
             {products.length === 0 && (
-              <tr><td colSpan={5} className="td text-center text-slate-400 py-10">Mahsulotlar yo'q</td></tr>
+              <tr><td colSpan={5} className="td text-center text-slate-400 py-10">Mahsulot yo'q</td></tr>
             )}
           </tbody>
         </table>
@@ -152,7 +123,7 @@ export default function RestaurantMenuPage() {
             {editing.image_url && (
               <img src={editing.image_url} alt="" className="h-24 w-full rounded-lg object-cover bg-slate-100" />
             )}
-            <input className="input" type="number" placeholder="Narx" value={editing.price ?? 0}
+            <input className="input" type="number" placeholder="Narx (so'm)" value={editing.price ?? 0}
               onChange={(e) => setEditing({ ...editing, price: +e.target.value })} />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={editing.is_available ?? true}
@@ -160,7 +131,7 @@ export default function RestaurantMenuPage() {
             </label>
             <div className="flex gap-2 justify-end pt-2">
               <button className="btn-ghost" onClick={() => setEditing(null)}><CircleX size={16} /> Bekor</button>
-              <button className="btn" onClick={saveProduct}><CircleCheck size={16} /> Saqlash</button>
+              <button className="btn" onClick={save}><CircleCheck size={16} /> Saqlash</button>
             </div>
           </div>
         </div>
