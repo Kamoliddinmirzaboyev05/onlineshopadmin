@@ -4,13 +4,16 @@ import { get, patch } from "../api";
 import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 import type { Product, Restaurant } from "../types";
 
+function numInput(val: number) { return val === 0 ? "" : String(val); }
+function parseNum(s: string) { return s === "" ? 0 : Number(s); }
+
 const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
 
 export default function WarehousePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
-  const [edit, setEdit] = useState<{ id: number; name: string; stock: number; threshold: number } | null>(null);
+  const [edit, setEdit] = useState<{ id: number; name: string; stock: number; threshold: number; unit: string } | null>(null);
 
   const load = async () => {
     setErr(false);
@@ -55,13 +58,14 @@ export default function WarehousePage() {
         <Card label="Ombor qiymati" value={`${money(stockValue)} so'm`} icon={Boxes} tint="bg-emerald-50 text-emerald-600" />
       </div>
 
-      {err ? <ErrorRetry onRetry={load} /> : loading ? <TableSkeleton cols={5} /> : (
+      {err ? <ErrorRetry onRetry={load} /> : loading ? <TableSkeleton cols={6} /> : (
       <div className="card overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="bg-slate-50">
               <th className="th">Mahsulot</th>
               <th className="th">Qoldiq</th>
+              <th className="th">Birlik</th>
               <th className="th">Chegara</th>
               <th className="th">Holat</th>
               <th className="th"></th>
@@ -84,6 +88,9 @@ export default function WarehousePage() {
                   <td className="td">
                     <span className={isOut ? "text-rose-600 font-bold" : isLow ? "text-amber-600 font-semibold" : "font-medium"}>{p.stock}</span>
                   </td>
+                  <td className="td">
+                    <span className="pill bg-slate-100 text-slate-600">{p.unit ?? "dona"}</span>
+                  </td>
                   <td className="td text-slate-400">{p.low_stock_threshold}</td>
                   <td className="td">
                     {isOut ? <span className="pill bg-rose-100 text-rose-700">Tugagan</span>
@@ -92,7 +99,7 @@ export default function WarehousePage() {
                   </td>
                   <td className="td text-right">
                     <button className="btn-ghost !py-1.5 !px-3 text-sm"
-                      onClick={() => setEdit({ id: p.id, name: p.name_uz, stock: p.stock, threshold: p.low_stock_threshold })}>
+                      onClick={() => setEdit({ id: p.id, name: p.name_uz, stock: p.stock, threshold: p.low_stock_threshold, unit: p.unit ?? "dona" })}>
                       <PackagePlus size={15} /> Qoldiq
                     </button>
                   </td>
@@ -100,7 +107,7 @@ export default function WarehousePage() {
               );
             })}
             {products.length === 0 && (
-              <tr><td colSpan={5} className="td text-center text-slate-400 py-10">Mahsulot yo'q</td></tr>
+              <tr><td colSpan={6} className="td text-center text-slate-400 py-10">Mahsulot yo'q</td></tr>
             )}
           </tbody>
         </table>
@@ -108,29 +115,39 @@ export default function WarehousePage() {
       )}
 
       {edit && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="card p-6 w-96 space-y-3">
-            <h2 className="font-bold text-lg">Qoldiqni yangilash</h2>
-            <p className="text-sm text-slate-500">{edit.name}</p>
-            <label className="block">
-              <span className="text-xs text-slate-500">Ombor qoldig'i</span>
-              <input className="input mt-1" type="number" value={edit.stock}
-                onChange={(e) => setEdit({ ...edit, stock: +e.target.value })} />
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              {[10, 50, 100].map((n) => (
-                <button key={n} className="btn-ghost !py-1 !px-3 text-sm"
-                  onClick={() => setEdit({ ...edit, stock: edit.stock + n })}>+{n}</button>
-              ))}
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="card w-full max-w-md">
+            <div className="px-7 pt-7 pb-4 border-b border-slate-100">
+              <h2 className="font-bold text-xl">Qoldiqni yangilash</h2>
+              <p className="text-sm text-slate-400 mt-0.5">{edit.name}</p>
             </div>
-            <label className="block">
-              <span className="text-xs text-slate-500">Kam qoldiq chegarasi</span>
-              <input className="input mt-1" type="number" value={edit.threshold}
-                onChange={(e) => setEdit({ ...edit, threshold: +e.target.value })} />
-            </label>
-            <div className="flex gap-2 justify-end pt-2">
+            <div className="px-7 py-5 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Ombor qoldig'i ({edit.unit})
+                </label>
+                <input className="input text-lg" type="number" min="0" placeholder="0"
+                  value={numInput(edit.stock)}
+                  onChange={(e) => setEdit({ ...edit, stock: parseNum(e.target.value) })} />
+                <div className="flex gap-2 mt-2">
+                  {[1, 5, 10, 50, 100].map((n) => (
+                    <button key={n} className="btn-ghost !py-1 !px-3 text-sm"
+                      onClick={() => setEdit({ ...edit, stock: edit.stock + n })}>+{n}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Kam qoldiq chegarasi ({edit.unit})
+                </label>
+                <input className="input" type="number" min="0" placeholder="10"
+                  value={numInput(edit.threshold)}
+                  onChange={(e) => setEdit({ ...edit, threshold: parseNum(e.target.value) })} />
+              </div>
+            </div>
+            <div className="px-7 py-4 border-t border-slate-100 flex gap-3 justify-end bg-slate-50/60 rounded-b-2xl">
               <button className="btn-ghost" onClick={() => setEdit(null)}><CircleX size={16} /> Bekor</button>
-              <button className="btn" onClick={save}><CircleCheck size={16} /> Saqlash</button>
+              <button className="btn px-6" onClick={save}><CircleCheck size={16} /> Saqlash</button>
             </div>
           </div>
         </div>

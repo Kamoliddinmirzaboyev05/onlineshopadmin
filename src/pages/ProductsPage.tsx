@@ -8,6 +8,24 @@ import type { Category, Product, Restaurant } from "../types";
 type Tab = "products" | "categories";
 const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
 
+const UNITS = [
+  { value: "dona",   label: "Dona (шт)" },
+  { value: "kg",     label: "Kilogram (кг)" },
+  { value: "g",      label: "Gramm (г)" },
+  { value: "litr",   label: "Litr (л)" },
+  { value: "ml",     label: "Millilitr (мл)" },
+  { value: "pachka", label: "Pachka (пачка)" },
+  { value: "quti",   label: "Quti (коробка)" },
+  { value: "xalta",  label: "Xalta (мешок)" },
+  { value: "juft",   label: "Juft (пара)" },
+  { value: "metr",   label: "Metr (м)" },
+];
+
+function numInput(val: number | undefined) {
+  return val === 0 || val === undefined ? "" : String(val);
+}
+function parseNum(s: string) { return s === "" ? 0 : Number(s); }
+
 export default function ProductsPage() {
   const [tab, setTab] = useState<Tab>("products");
   const [storeId, setStoreId] = useState<number | null>(null);
@@ -58,6 +76,7 @@ export default function ProductsPage() {
         price: editing.price ?? 0,
         cost: editing.cost ?? 0,
         stock: editing.stock ?? 0,
+        unit: editing.unit ?? "dona",
         low_stock_threshold: editing.low_stock_threshold ?? 10,
         is_available: editing.is_available ?? true,
         sort_order: editing.sort_order ?? 0,
@@ -118,7 +137,7 @@ export default function ProductsPage() {
               className="btn"
               disabled={categories.length === 0}
               title={categories.length === 0 ? "Avval kategoriya qo'shing" : ""}
-              onClick={() => setEditing({ category_id: categories[0]?.id, is_available: true, price: 0, cost: 0, stock: 0, low_stock_threshold: 10 })}
+              onClick={() => setEditing({ category_id: categories[0]?.id, is_available: true, price: 0, cost: 0, stock: 0, unit: "dona", low_stock_threshold: 10 })}
             >
               <Plus size={18} /> Mahsulot qo'shish
             </button>
@@ -150,12 +169,14 @@ export default function ProductsPage() {
                       </div>
                     </td>
                     <td className="td">{catName(p.category_id)}</td>
-                    <td className="td">{money(p.price)}</td>
+                    <td className="td">{money(p.price)} so'm</td>
                     <td className="td">
                       {money(p.cost)} <span className="text-xs text-slate-400">({margin(p)}%)</span>
                     </td>
                     <td className="td">
-                      <span className={p.stock <= p.low_stock_threshold ? "text-rose-600 font-semibold" : ""}>{p.stock}</span>
+                      <span className={p.stock <= p.low_stock_threshold ? "text-rose-600 font-semibold" : ""}>
+                        {p.stock} <span className="text-xs text-slate-400">{p.unit}</span>
+                      </span>
                     </td>
                     <td className="td">
                       {p.is_available
@@ -253,52 +274,131 @@ export default function ProductsPage() {
 
       {/* ── PRODUCT MODAL ────────────────────────────────── */}
       {editing && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="card p-6 w-[26rem] max-h-[90vh] overflow-auto space-y-3">
-            <h2 className="font-bold text-lg">{editing.id ? "Tahrirlash" : "Yangi mahsulot"}</h2>
-            <select className="input" value={editing.category_id}
-              onChange={(e) => setEditing({ ...editing, category_id: +e.target.value })}>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name_uz}</option>)}
-            </select>
-            <input className="input" placeholder="Nomi (uz)" value={editing.name_uz ?? ""}
-              onChange={(e) => setEditing({ ...editing, name_uz: e.target.value })} />
-            <input className="input" placeholder="Название (ru)" value={editing.name_ru ?? ""}
-              onChange={(e) => setEditing({ ...editing, name_ru: e.target.value })} />
-            <ImageUpload
-              label="Mahsulot rasmi"
-              value={editing.image_url}
-              heightClass="h-28"
-              onChange={(url) => setEditing({ ...editing, image_url: url })}
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-xs text-slate-500">Sotuv narxi (so'm)</span>
-                <input className="input mt-1" type="number" value={editing.price ?? 0}
-                  onChange={(e) => setEditing({ ...editing, price: +e.target.value })} />
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-500">Tannarx (so'm)</span>
-                <input className="input mt-1" type="number" value={editing.cost ?? 0}
-                  onChange={(e) => setEditing({ ...editing, cost: +e.target.value })} />
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-500">Ombor qoldig'i</span>
-                <input className="input mt-1" type="number" value={editing.stock ?? 0}
-                  onChange={(e) => setEditing({ ...editing, stock: +e.target.value })} />
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-500">Kam qoldiq chegarasi</span>
-                <input className="input mt-1" type="number" value={editing.low_stock_threshold ?? 10}
-                  onChange={(e) => setEditing({ ...editing, low_stock_threshold: +e.target.value })} />
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="card w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            <div className="px-7 pt-7 pb-4 border-b border-slate-100">
+              <h2 className="font-bold text-xl">{editing.id ? "Mahsulotni tahrirlash" : "Yangi mahsulot"}</h2>
+              <p className="text-sm text-slate-400 mt-0.5">{editing.id ? `#${editing.id}` : "Barcha maydonlarni to'ldiring"}</p>
+            </div>
+
+            <div className="px-7 py-5 space-y-5">
+              {/* Kategoriya */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Kategoriya</label>
+                <select className="input" value={editing.category_id}
+                  onChange={(e) => setEditing({ ...editing, category_id: +e.target.value })}>
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name_uz}</option>)}
+                </select>
+              </div>
+
+              {/* Nomlar */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Nomi (uz)</label>
+                  <input className="input" placeholder="Masalan: Olma" value={editing.name_uz ?? ""}
+                    onChange={(e) => setEditing({ ...editing, name_uz: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Название (ru)</label>
+                  <input className="input" placeholder="Например: Яблоко" value={editing.name_ru ?? ""}
+                    onChange={(e) => setEditing({ ...editing, name_ru: e.target.value })} />
+                </div>
+              </div>
+
+              {/* Tasvir */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Mahsulot rasmi</label>
+                <ImageUpload
+                  label=""
+                  value={editing.image_url}
+                  heightClass="h-36"
+                  onChange={(url) => setEditing({ ...editing, image_url: url })}
+                />
+              </div>
+
+              {/* Narx, Tannarx, O'lchov birligi */}
+              <div>
+                <p className="text-sm font-medium text-slate-700 mb-3">Narx va o'lchov</p>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Sotuv narxi (so'm)</label>
+                    <input className="input" type="number" min="0" placeholder="0"
+                      value={numInput(editing.price)}
+                      onChange={(e) => setEditing({ ...editing, price: parseNum(e.target.value) })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Tannarx (so'm)</label>
+                    <input className="input" type="number" min="0" placeholder="0"
+                      value={numInput(editing.cost)}
+                      onChange={(e) => setEditing({ ...editing, cost: parseNum(e.target.value) })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">O'lchov birligi</label>
+                    <select className="input" value={editing.unit ?? "dona"}
+                      onChange={(e) => setEditing({ ...editing, unit: e.target.value })}>
+                      {UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {(editing.price ?? 0) > 0 && (editing.cost ?? 0) > 0 && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    Margin: {Math.round(((editing.price! - editing.cost!) / editing.price!) * 100)}% · Foyda: {money(editing.price! - editing.cost!)} so'm / {editing.unit ?? "dona"}
+                  </p>
+                )}
+              </div>
+
+              {/* Ombor */}
+              <div>
+                <p className="text-sm font-medium text-slate-700 mb-3">Ombor</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Qoldiq ({editing.unit ?? "dona"})</label>
+                    <input className="input" type="number" min="0" placeholder="0"
+                      value={numInput(editing.stock)}
+                      onChange={(e) => setEditing({ ...editing, stock: parseNum(e.target.value) })} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 mb-1">Kam qoldiq chegarasi ({editing.unit ?? "dona"})</label>
+                    <input className="input" type="number" min="0" placeholder="10"
+                      value={numInput(editing.low_stock_threshold)}
+                      onChange={(e) => setEditing({ ...editing, low_stock_threshold: parseNum(e.target.value) })} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Tavsif */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Tavsif (uz)</label>
+                  <textarea className="input resize-none h-20" placeholder="Ixtiyoriy..."
+                    value={editing.description_uz ?? ""}
+                    onChange={(e) => setEditing({ ...editing, description_uz: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Описание (ru)</label>
+                  <textarea className="input resize-none h-20" placeholder="Необязательно..."
+                    value={editing.description_ru ?? ""}
+                    onChange={(e) => setEditing({ ...editing, description_ru: e.target.value })} />
+                </div>
+              </div>
+
+              {/* Mavjudlik */}
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <div className="relative">
+                  <input type="checkbox" className="sr-only peer" checked={editing.is_available ?? true}
+                    onChange={(e) => setEditing({ ...editing, is_available: e.target.checked })} />
+                  <div className="w-10 h-6 bg-slate-200 peer-checked:bg-brand rounded-full transition-colors" />
+                  <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" />
+                </div>
+                <span className="text-sm font-medium text-slate-700">Sotuvda mavjud</span>
               </label>
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={editing.is_available ?? true}
-                onChange={(e) => setEditing({ ...editing, is_available: e.target.checked })} /> Mavjud
-            </label>
-            <div className="flex gap-2 justify-end pt-2">
+
+            <div className="px-7 py-4 border-t border-slate-100 flex gap-3 justify-end bg-slate-50/60 rounded-b-2xl">
               <button className="btn-ghost" onClick={() => setEditing(null)} disabled={saving}><CircleX size={16} /> Bekor</button>
-              <button className="btn" onClick={saveProduct} disabled={saving}><CircleCheck size={16} /> {saving ? "..." : "Saqlash"}</button>
+              <button className="btn px-6" onClick={saveProduct} disabled={saving}>
+                <CircleCheck size={16} /> {saving ? "Saqlanmoqda..." : "Saqlash"}
+              </button>
             </div>
           </div>
         </div>
@@ -306,22 +406,39 @@ export default function ProductsPage() {
 
       {/* ── CATEGORY MODAL ───────────────────────────────── */}
       {editCat && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="card p-6 w-96 space-y-3">
-            <h2 className="font-bold text-lg">{editCat.id ? "Tahrirlash" : "Yangi kategoriya"}</h2>
-            <input className="input" placeholder="Nomi (uz) — masalan: Mevalar" value={editCat.name_uz ?? ""}
-              onChange={(e) => setEditCat({ ...editCat, name_uz: e.target.value })} />
-            <input className="input" placeholder="Название (ru) — например: Фрукты" value={editCat.name_ru ?? ""}
-              onChange={(e) => setEditCat({ ...editCat, name_ru: e.target.value })} />
-            <ImageUpload
-              label="Kategoriya rasmi (kartochka foni)"
-              value={editCat.image_url}
-              heightClass="h-28"
-              onChange={(url) => setEditCat({ ...editCat, image_url: url })}
-            />
-            <div className="flex gap-2 justify-end pt-2">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="card w-full max-w-lg">
+            <div className="px-7 pt-7 pb-4 border-b border-slate-100">
+              <h2 className="font-bold text-xl">{editCat.id ? "Kategoriyani tahrirlash" : "Yangi kategoriya"}</h2>
+            </div>
+            <div className="px-7 py-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Nomi (uz)</label>
+                  <input className="input" placeholder="Masalan: Mevalar" value={editCat.name_uz ?? ""}
+                    onChange={(e) => setEditCat({ ...editCat, name_uz: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">Название (ru)</label>
+                  <input className="input" placeholder="Например: Фрукты" value={editCat.name_ru ?? ""}
+                    onChange={(e) => setEditCat({ ...editCat, name_ru: e.target.value })} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">Kategoriya rasmi</label>
+                <ImageUpload
+                  label=""
+                  value={editCat.image_url}
+                  heightClass="h-32"
+                  onChange={(url) => setEditCat({ ...editCat, image_url: url })}
+                />
+              </div>
+            </div>
+            <div className="px-7 py-4 border-t border-slate-100 flex gap-3 justify-end bg-slate-50/60 rounded-b-2xl">
               <button className="btn-ghost" onClick={() => setEditCat(null)} disabled={saving}><CircleX size={16} /> Bekor</button>
-              <button className="btn" onClick={saveCat} disabled={saving}><CircleCheck size={16} /> {saving ? "..." : "Saqlash"}</button>
+              <button className="btn px-6" onClick={saveCat} disabled={saving}>
+                <CircleCheck size={16} /> {saving ? "Saqlanmoqda..." : "Saqlash"}
+              </button>
             </div>
           </div>
         </div>

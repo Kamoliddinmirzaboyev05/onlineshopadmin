@@ -33,6 +33,7 @@ export interface Product {
   price: number;
   cost: number;
   stock: number;
+  unit: string;
   low_stock_threshold: number;
   is_available: boolean;
   sort_order: number;
