@@ -17,15 +17,28 @@ export function notifPermission(): NotificationPermission {
   return pushSupported() ? Notification.permission : "denied";
 }
 
-/** Request permission, subscribe via PushManager, register subscription with the backend. */
+/** serviceWorker.ready can hang forever if the SW never activates — race it with a timeout. */
+function serviceWorkerReady(timeoutMs = 10000): Promise<ServiceWorkerRegistration> {
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    new Promise<ServiceWorkerRegistration>((_, reject) =>
+      setTimeout(() => reject(new Error("Service worker tayyor bo'lmadi")), timeoutMs),
+    ),
+  ]);
+}
+
+/**
+ * Request permission, subscribe via PushManager, register subscription with the backend.
+ * May throw — callers should surface the error to the user.
+ */
 export async function enablePush(): Promise<NotificationPermission> {
   if (!pushSupported()) return "denied";
   const perm = await Notification.requestPermission();
   if (perm !== "granted") return perm;
 
-  const reg = await navigator.serviceWorker.ready;
+  const reg = await serviceWorkerReady();
   const { public_key } = await get<{ public_key: string }>("/admin/push/public-key");
-  if (!public_key) return "denied";
+  if (!public_key) throw new Error("Push kaliti olinmadi");
 
   let sub = await reg.pushManager.getSubscription();
   if (!sub) {

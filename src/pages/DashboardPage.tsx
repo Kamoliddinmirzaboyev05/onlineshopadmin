@@ -5,7 +5,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { get } from "../api";
-import { StatCardsSkeleton } from "../components/Skeleton";
+import { ErrorRetry, StatCardsSkeleton } from "../components/Skeleton";
 import type { DashboardStats } from "../types";
 
 const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
@@ -50,16 +50,20 @@ function Row({ label, value, accent }: { label: string; value: string; accent?: 
 
 export default function DashboardPage() {
   const [s, setS] = useState<DashboardStats | null>(null);
+  const [err, setErr] = useState(false);
 
-  useEffect(() => {
-    get<DashboardStats>("/admin/stats").then(setS);
-  }, []);
+  const load = () => {
+    setErr(false);
+    get<DashboardStats>("/admin/stats").then(setS).catch(() => setErr(true));
+  };
+
+  useEffect(() => { load(); }, []);
 
   return (
     <div>
       <h1 className="text-2xl font-bold tracking-tight mb-1">Dashboard</h1>
       <p className="text-slate-500 mb-6">Umumiy ko'rsatkichlar</p>
-      {!s ? <StatCardsSkeleton /> : (
+      {err && !s ? <ErrorRetry onRetry={load} /> : !s ? <StatCardsSkeleton /> : (
       <div className="space-y-6">
         {/* Top stat cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -116,3 +116,26 @@ export interface AdminUser {
   role: string;
   is_active: boolean;
 }
+
+export interface SupplyRecord {
+  id: number;
+  product_id: number;
+  product_name: string;
+  supplier_name: string;
+  quantity: number;
+  unit: string;
+  cost_per_unit: number;
+  total_cost: number;
+  supply_date: string;
+  notes?: string | null;
+  created_at: string;
+}
+
+export interface Courier {
+  id: number;
+  name: string;
+  phone?: string | null;
+  telegram_id?: number | null;
+  is_active: boolean;
+  is_busy: boolean;
+}

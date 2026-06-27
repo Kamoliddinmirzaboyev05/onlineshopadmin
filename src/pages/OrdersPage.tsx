@@ -1,7 +1,7 @@
 import { MapPin, Phone } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { get, patch } from "../api";
-import { OrderListSkeleton } from "../components/Skeleton";
+import { ErrorRetry, OrderListSkeleton } from "../components/Skeleton";
 import type { Order, OrderStatus } from "../types";
 
 const STATUSES: OrderStatus[] = [
@@ -26,23 +26,45 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "">("");
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(false);
+  // Guard so a poll tick and a manual refresh never run concurrently and
+  // clobber each other's (potentially newer) state.
+  const inFlight = useRef(false);
 
-  const load = () => {
+  const load = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
     const q = filter ? `?status_filter=${filter}` : "";
-    get<Order[]>(`/admin/orders${q}`).then((d) => {
+    try {
+      const d = await get<Order[]>(`/admin/orders${q}`);
       setOrders(d);
+      setErr(false);
+    } catch {
+      setErr(true);
+    } finally {
       setLoading(false);
-    });
+      inFlight.current = false;
+    }
   };
+
   useEffect(() => {
     load();
     const iv = setInterval(load, 15000);
     return () => clearInterval(iv);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const setStatus = async (id: number, status: OrderStatus) => {
-    await patch(`/admin/orders/${id}`, { status });
-    load();
+    const prev = orders;
+    // Optimistic update, rolled back if the request fails.
+    setOrders((os) => os.map((o) => (o.id === id ? { ...o, status } : o)));
+    try {
+      await patch(`/admin/orders/${id}`, { status });
+      load();
+    } catch {
+      setOrders(prev);
+      setErr(true);
+    }
   };
 
   return (
@@ -59,7 +81,7 @@ export default function OrdersPage() {
         ))}
       </div>
 
-      {loading ? <OrderListSkeleton /> : (
+      {loading ? <OrderListSkeleton /> : err && orders.length === 0 ? <ErrorRetry onRetry={load} /> : (
       <div className="space-y-3">
         {orders.map((o) => (
           <div key={o.id} className="card p-4">

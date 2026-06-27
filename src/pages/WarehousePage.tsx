@@ -1,7 +1,7 @@
 import { AlertTriangle, Boxes, CircleCheck, CircleX, Package, PackagePlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { get, patch } from "../api";
-import { TableSkeleton } from "../components/Skeleton";
+import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 import type { Product, Restaurant } from "../types";
 
 const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
@@ -9,12 +9,19 @@ const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
 export default function WarehousePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(false);
   const [edit, setEdit] = useState<{ id: number; name: string; stock: number; threshold: number } | null>(null);
 
   const load = async () => {
-    const s = await get<Restaurant>("/admin/store");
-    setProducts(await get<Product[]>(`/admin/restaurants/${s.id}/products`));
-    setLoading(false);
+    setErr(false);
+    try {
+      const s = await get<Restaurant>("/admin/store");
+      setProducts(await get<Product[]>(`/admin/restaurants/${s.id}/products`));
+    } catch {
+      setErr(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -48,7 +55,7 @@ export default function WarehousePage() {
         <Card label="Ombor qiymati" value={`${money(stockValue)} so'm`} icon={Boxes} tint="bg-emerald-50 text-emerald-600" />
       </div>
 
-      {loading ? <TableSkeleton cols={5} /> : (
+      {err ? <ErrorRetry onRetry={load} /> : loading ? <TableSkeleton cols={5} /> : (
       <div className="card overflow-hidden">
         <table className="w-full">
           <thead>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { get } from "../api";
-import { TableSkeleton } from "../components/Skeleton";
+import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 
 interface UserRow {
   id: number;
@@ -15,15 +15,22 @@ interface UserRow {
 export default function UsersPage() {
   const [items, setItems] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(false);
 
-  useEffect(() => {
-    get<UserRow[]>("/admin/users").then((d) => { setItems(d); setLoading(false); });
-  }, []);
+  const load = () => {
+    setErr(false);
+    setLoading(true);
+    get<UserRow[]>("/admin/users")
+      .then((d) => { setItems(d); setLoading(false); })
+      .catch(() => { setErr(true); setLoading(false); });
+  };
+
+  useEffect(() => { load(); }, []);
 
   return (
     <div>
       <h1 className="text-2xl font-bold tracking-tight mb-5">Foydalanuvchilar</h1>
-      {loading ? <TableSkeleton cols={5} /> : (
+      {err ? <ErrorRetry onRetry={load} /> : loading ? <TableSkeleton cols={5} /> : (
       <div className="card overflow-hidden">
         <table className="w-full">
           <thead>

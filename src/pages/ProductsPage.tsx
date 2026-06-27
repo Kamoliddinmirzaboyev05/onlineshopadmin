@@ -2,7 +2,7 @@ import { CircleCheck, CircleX, FolderTree, Pencil, Plus, ShoppingBasket, Trash2 
 import { useEffect, useState } from "react";
 import { del, get, post, put } from "../api";
 import ImageUpload from "../components/ImageUpload";
-import { TableSkeleton } from "../components/Skeleton";
+import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 import type { Category, Product, Restaurant } from "../types";
 
 type Tab = "products" | "categories";
@@ -16,53 +16,79 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
   const [editCat, setEditCat] = useState<Partial<Category> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [delProd, setDelProd] = useState<number | null>(null);
+  const [delCat, setDelCat] = useState<number | null>(null);
 
   const loadData = async (sid: number) => {
-    setCategories(await get<Category[]>(`/admin/restaurants/${sid}/categories`));
-    setProducts(await get<Product[]>(`/admin/restaurants/${sid}/products`));
-    setLoading(false);
+    setErr(false);
+    try {
+      setCategories(await get<Category[]>(`/admin/restaurants/${sid}/categories`));
+      setProducts(await get<Product[]>(`/admin/restaurants/${sid}/products`));
+    } catch {
+      setErr(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    get<Restaurant>("/admin/store").then((s) => { setStoreId(s.id); loadData(s.id); });
-  }, []);
+  const reload = () => {
+    setErr(false);
+    setLoading(true);
+    get<Restaurant>("/admin/store")
+      .then((s) => { setStoreId(s.id); loadData(s.id); })
+      .catch(() => { setErr(true); setLoading(false); });
+  };
+
+  useEffect(() => { reload(); }, []);
 
   const saveProduct = async () => {
-    if (!editing || !storeId) return;
-    const body = {
-      restaurant_id: storeId,
-      category_id: editing.category_id,
-      name_uz: editing.name_uz ?? "",
-      name_ru: editing.name_ru ?? editing.name_uz ?? "",
-      description_uz: editing.description_uz ?? "",
-      description_ru: editing.description_ru ?? "",
-      image_url: editing.image_url ?? null,
-      price: editing.price ?? 0,
-      cost: editing.cost ?? 0,
-      stock: editing.stock ?? 0,
-      low_stock_threshold: editing.low_stock_threshold ?? 10,
-      is_available: editing.is_available ?? true,
-      sort_order: editing.sort_order ?? 0,
-    };
-    if (editing.id) await put(`/admin/products/${editing.id}`, body);
-    else await post("/admin/products", body);
-    setEditing(null);
-    loadData(storeId);
+    if (!editing || !storeId || saving) return;
+    setSaving(true);
+    try {
+      const body = {
+        restaurant_id: storeId,
+        category_id: editing.category_id,
+        name_uz: editing.name_uz ?? "",
+        name_ru: editing.name_ru ?? editing.name_uz ?? "",
+        description_uz: editing.description_uz ?? "",
+        description_ru: editing.description_ru ?? "",
+        image_url: editing.image_url ?? null,
+        price: editing.price ?? 0,
+        cost: editing.cost ?? 0,
+        stock: editing.stock ?? 0,
+        low_stock_threshold: editing.low_stock_threshold ?? 10,
+        is_available: editing.is_available ?? true,
+        sort_order: editing.sort_order ?? 0,
+      };
+      if (editing.id) await put(`/admin/products/${editing.id}`, body);
+      else await post("/admin/products", body);
+      setEditing(null);
+      await loadData(storeId);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveCat = async () => {
-    if (!editCat || !storeId || !editCat.name_uz?.trim()) return;
-    const body = {
-      restaurant_id: storeId,
-      name_uz: editCat.name_uz,
-      name_ru: editCat.name_ru || editCat.name_uz,
-      image_url: editCat.image_url ?? null,
-      sort_order: editCat.sort_order ?? categories.length,
-    };
-    if (editCat.id) await put(`/admin/categories/${editCat.id}`, body);
-    else await post("/admin/categories", body);
-    setEditCat(null);
-    loadData(storeId);
+    if (!editCat || !storeId || !editCat.name_uz?.trim() || saving) return;
+    setSaving(true);
+    try {
+      const body = {
+        restaurant_id: storeId,
+        name_uz: editCat.name_uz,
+        name_ru: editCat.name_ru || editCat.name_uz,
+        image_url: editCat.image_url ?? null,
+        sort_order: editCat.sort_order ?? categories.length,
+      };
+      if (editCat.id) await put(`/admin/categories/${editCat.id}`, body);
+      else await post("/admin/categories", body);
+      setEditCat(null);
+      await loadData(storeId);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const catName = (id: number) => categories.find((c) => c.id === id)?.name_uz ?? "—";
@@ -98,7 +124,7 @@ export default function ProductsPage() {
             </button>
           </div>
 
-          {loading ? <TableSkeleton cols={6} /> : (
+          {err ? <ErrorRetry onRetry={reload} /> : loading ? <TableSkeleton cols={6} /> : (
           <div className="card overflow-hidden">
             <table className="w-full">
               <thead>
@@ -138,8 +164,18 @@ export default function ProductsPage() {
                     </td>
                     <td className="td text-right">
                       <div className="inline-flex items-center gap-1">
-                        <button className="icon-btn" title="Tahrirlash" onClick={() => setEditing(p)}><Pencil size={16} /></button>
-                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => storeId && del(`/admin/products/${p.id}`).then(() => loadData(storeId))}><Trash2 size={16} /></button>
+                        {delProd === p.id ? (
+                          <>
+                            <button className="icon-btn text-red-600 hover:bg-red-50" title="Tasdiqlash"
+                              onClick={() => storeId && del(`/admin/products/${p.id}`).then(() => { setDelProd(null); loadData(storeId); })}><CircleCheck size={16} /></button>
+                            <button className="icon-btn" title="Bekor" onClick={() => setDelProd(null)}><CircleX size={16} /></button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="icon-btn" title="Tahrirlash" onClick={() => setEditing(p)}><Pencil size={16} /></button>
+                            <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => setDelProd(p.id)}><Trash2 size={16} /></button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -163,7 +199,7 @@ export default function ProductsPage() {
             <button className="btn" onClick={() => setEditCat({})}><Plus size={18} /> Kategoriya qo'shish</button>
           </div>
 
-          {loading ? <TableSkeleton cols={3} /> : (
+          {err ? <ErrorRetry onRetry={reload} /> : loading ? <TableSkeleton cols={3} /> : (
           <div className="card overflow-hidden">
             <table className="w-full">
               <thead>
@@ -189,8 +225,18 @@ export default function ProductsPage() {
                     <td className="td">{products.filter((p) => p.category_id === c.id).length}</td>
                     <td className="td text-right">
                       <div className="inline-flex items-center gap-1">
-                        <button className="icon-btn" title="Tahrirlash" onClick={() => setEditCat(c)}><Pencil size={16} /></button>
-                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => storeId && del(`/admin/categories/${c.id}`).then(() => loadData(storeId))}><Trash2 size={16} /></button>
+                        {delCat === c.id ? (
+                          <>
+                            <button className="icon-btn text-red-600 hover:bg-red-50" title="Tasdiqlash"
+                              onClick={() => storeId && del(`/admin/categories/${c.id}`).then(() => { setDelCat(null); loadData(storeId); })}><CircleCheck size={16} /></button>
+                            <button className="icon-btn" title="Bekor" onClick={() => setDelCat(null)}><CircleX size={16} /></button>
+                          </>
+                        ) : (
+                          <>
+                            <button className="icon-btn" title="Tahrirlash" onClick={() => setEditCat(c)}><Pencil size={16} /></button>
+                            <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => setDelCat(c.id)}><Trash2 size={16} /></button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -251,8 +297,8 @@ export default function ProductsPage() {
                 onChange={(e) => setEditing({ ...editing, is_available: e.target.checked })} /> Mavjud
             </label>
             <div className="flex gap-2 justify-end pt-2">
-              <button className="btn-ghost" onClick={() => setEditing(null)}><CircleX size={16} /> Bekor</button>
-              <button className="btn" onClick={saveProduct}><CircleCheck size={16} /> Saqlash</button>
+              <button className="btn-ghost" onClick={() => setEditing(null)} disabled={saving}><CircleX size={16} /> Bekor</button>
+              <button className="btn" onClick={saveProduct} disabled={saving}><CircleCheck size={16} /> {saving ? "..." : "Saqlash"}</button>
             </div>
           </div>
         </div>
@@ -274,8 +320,8 @@ export default function ProductsPage() {
               onChange={(url) => setEditCat({ ...editCat, image_url: url })}
             />
             <div className="flex gap-2 justify-end pt-2">
-              <button className="btn-ghost" onClick={() => setEditCat(null)}><CircleX size={16} /> Bekor</button>
-              <button className="btn" onClick={saveCat}><CircleCheck size={16} /> Saqlash</button>
+              <button className="btn-ghost" onClick={() => setEditCat(null)} disabled={saving}><CircleX size={16} /> Bekor</button>
+              <button className="btn" onClick={saveCat} disabled={saving}><CircleCheck size={16} /> {saving ? "..." : "Saqlash"}</button>
             </div>
           </div>
         </div>

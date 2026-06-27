@@ -1,19 +1,23 @@
 import {
-  BarChart3, LayoutDashboard, LogOut, Menu, ReceiptText,
-  ShoppingBasket, Store, Users, Warehouse, X,
+  Bike, BarChart3, LayoutDashboard, LogOut, Menu, ReceiptText,
+  ShoppingBasket, Store, Truck, Users, Warehouse, X,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../store";
 import PushButton from "./PushButton";
 
+// `roles` undefined → visible to every allowed (non-courier) admin.
+// `roles` set → only those roles see the link.
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/orders", label: "Buyurtmalar", icon: ReceiptText },
   { to: "/products", label: "Mahsulotlar", icon: ShoppingBasket },
   { to: "/warehouse", label: "Ombor", icon: Warehouse },
-  { to: "/reports", label: "Hisobot", icon: BarChart3 },
-  { to: "/users", label: "Foydalanuvchilar", icon: Users },
+  { to: "/supplies", label: "Yetkazib berish", icon: Truck },
+  { to: "/reports", label: "Hisobot", icon: BarChart3, roles: ["superadmin"] },
+  { to: "/users", label: "Foydalanuvchilar", icon: Users, roles: ["superadmin"] },
+  { to: "/couriers", label: "Xodimlar", icon: Bike, roles: ["superadmin"] },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -50,7 +54,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {links.map((l) => {
+          {links
+            .filter((l) => !l.roles || (admin && l.roles.includes(admin.role)))
+            .map((l) => {
             const Icon = l.icon;
             return (
               <NavLink

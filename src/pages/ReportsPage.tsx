@@ -1,7 +1,7 @@
 import { BarChart3, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { get } from "../api";
-import { StatCardsSkeleton } from "../components/Skeleton";
+import { ErrorRetry, StatCardsSkeleton } from "../components/Skeleton";
 import type { PeriodPoint, ReportsOut } from "../types";
 
 const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
@@ -22,15 +22,21 @@ function fmtLabel(iso: string, period: Period) {
 export default function ReportsPage() {
   const [data, setData] = useState<ReportsOut | null>(null);
   const [period, setPeriod] = useState<Period>("daily");
+  const [err, setErr] = useState(false);
 
-  useEffect(() => { get<ReportsOut>("/admin/reports").then(setData); }, []);
+  const load = () => {
+    setErr(false);
+    get<ReportsOut>("/admin/reports").then(setData).catch(() => setErr(true));
+  };
+
+  useEffect(() => { load(); }, []);
 
   if (!data) {
     return (
       <div>
         <h1 className="text-2xl font-bold tracking-tight mb-1">Hisobot</h1>
         <p className="text-slate-500 mb-6">Savdo, foyda va mahsulot reytinglari</p>
-        <StatCardsSkeleton count={3} />
+        {err ? <ErrorRetry onRetry={load} /> : <StatCardsSkeleton count={3} />}
       </div>
     );
   }

@@ -2,6 +2,18 @@ export function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse bg-slate-200 rounded ${className}`} />;
 }
 
+export function ErrorRetry({
+  onRetry,
+  message = "Ma'lumotni yuklab bo'lmadi",
+}: { onRetry: () => void; message?: string }) {
+  return (
+    <div className="card p-8 text-center space-y-3">
+      <p className="text-sm text-slate-500">{message}</p>
+      <button className="btn-ghost mx-auto" onClick={onRetry}>Qayta urinish</button>
+    </div>
+  );
+}
+
 export function TableSkeleton({ cols = 5, rows = 6 }: { cols?: number; rows?: number }) {
   return (
     <div className="card overflow-hidden">
