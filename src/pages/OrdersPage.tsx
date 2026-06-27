@@ -1,8 +1,8 @@
-import { MapPin, Phone } from "lucide-react";
+import { MapPin, Navigation, Phone, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { get, patch } from "../api";
 import { ErrorRetry, OrderListSkeleton } from "../components/Skeleton";
-import type { Order, OrderStatus } from "../types";
+import type { AdminUser, Order, OrderStatus } from "../types";
 
 const STATUSES: OrderStatus[] = [
   "pending", "confirmed", "preparing", "ready", "delivering", "delivered", "cancelled",
@@ -24,6 +24,7 @@ const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [couriers, setCouriers] = useState<AdminUser[]>([]);
   const [filter, setFilter] = useState<OrderStatus | "">("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
@@ -54,6 +55,10 @@ export default function OrdersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
+  useEffect(() => {
+    get<AdminUser[]>("/admin/courier-accounts").then(setCouriers).catch(() => {});
+  }, []);
+
   const setStatus = async (id: number, status: OrderStatus) => {
     const prev = orders;
     // Optimistic update, rolled back if the request fails.
@@ -66,6 +71,27 @@ export default function OrdersPage() {
       setErr(true);
     }
   };
+
+  const assign = async (o: Order, courierId: number | null) => {
+    const prev = orders;
+    setOrders((os) =>
+      os.map((x) => (x.id === o.id ? { ...x, assigned_courier_id: courierId } : x))
+    );
+    try {
+      // PATCH talab qiladi status; hozirgini saqlaymiz.
+      await patch(`/admin/orders/${o.id}`, {
+        status: o.status,
+        assigned_courier_id: courierId,
+      });
+      load();
+    } catch {
+      setOrders(prev);
+      setErr(true);
+    }
+  };
+
+  const courierName = (id?: number | null) =>
+    couriers.find((c) => c.id === id)?.username ?? null;
 
   return (
     <div>
@@ -118,6 +144,34 @@ export default function OrdersPage() {
               >
                 {STATUSES.map((s) => <option key={s} value={s}>{LABEL[s]}</option>)}
               </select>
+
+              <select
+                className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm bg-white"
+                value={o.assigned_courier_id ?? ""}
+                onChange={(e) => e.target.value && assign(o, Number(e.target.value))}
+              >
+                <option value="">Kuryer biriktirish…</option>
+                {couriers.map((c) => (
+                  <option key={c.id} value={c.id}>{c.username}</option>
+                ))}
+              </select>
+
+              {o.assigned_courier_id && (
+                <span className="pill bg-slate-100 text-slate-600 inline-flex items-center gap-1">
+                  <User size={12} /> {courierName(o.assigned_courier_id) ?? `#${o.assigned_courier_id}`}
+                </span>
+              )}
+
+              {o.lat != null && o.lng != null && (
+                <a
+                  href={`https://yandex.com/maps/?rtext=~${o.lat},${o.lng}&rtt=auto`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="pill bg-blue-50 text-blue-700 inline-flex items-center gap-1 hover:bg-blue-100"
+                >
+                  <Navigation size={12} /> Xarita
+                </a>
+              )}
             </div>
           </div>
         ))}

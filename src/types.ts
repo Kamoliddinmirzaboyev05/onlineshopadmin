@@ -62,10 +62,24 @@ export interface Order {
   delivery_fee: number;
   total: number;
   address_line: string;
+  lat?: number | null;
+  lng?: number | null;
   phone?: string | null;
   comment?: string | null;
+  assigned_courier_id?: number | null;
   created_at: string;
   items: OrderItem[];
+}
+
+export interface DeliveryZone {
+  id?: number;
+  name: string;
+  fee: number;
+  min_order: number;
+  is_active: boolean;
+  center_lat?: number | null;
+  center_lng?: number | null;
+  radius_km?: number | null;
 }
 
 export interface TopProduct {

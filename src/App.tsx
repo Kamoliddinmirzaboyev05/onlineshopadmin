@@ -5,6 +5,7 @@ import { hasToken, setToken } from "./api";
 import Layout from "./components/Layout";
 import CouriersPage from "./pages/CouriersPage";
 import DashboardPage from "./pages/DashboardPage";
+import DeliveryZonePage from "./pages/DeliveryZonePage";
 import LoginPage from "./pages/LoginPage";
 import OrdersPage from "./pages/OrdersPage";
 import ProductsPage from "./pages/ProductsPage";
@@ -82,6 +83,7 @@ export default function App() {
       <Route path="/products" element={<Protected><ProductsPage /></Protected>} />
       <Route path="/warehouse" element={<Protected><WarehousePage /></Protected>} />
       <Route path="/supplies" element={<Protected><SuppliesPage /></Protected>} />
+      <Route path="/delivery-zone" element={<Protected><DeliveryZonePage /></Protected>} />
       <Route path="/reports" element={<Protected roles={SUPERADMIN}><ReportsPage /></Protected>} />
       <Route path="/users" element={<Protected roles={SUPERADMIN}><UsersPage /></Protected>} />
       <Route path="/couriers" element={<Protected roles={SUPERADMIN}><CouriersPage /></Protected>} />
