@@ -2,7 +2,10 @@
 // Custom service worker (vite-plugin-pwa injectManifest): precache + Web Push.
 // Excluded from the app tsc build (see tsconfig "exclude") — esbuild compiles it.
 import { clientsClaim } from "workbox-core";
+import { ExpirationPlugin } from "workbox-expiration";
 import { precacheAndRoute } from "workbox-precaching";
+import { registerRoute } from "workbox-routing";
+import { CacheFirst, NetworkFirst } from "workbox-strategies";
 
 declare const self: ServiceWorkerGlobalScope & typeof globalThis;
 
@@ -12,6 +15,35 @@ self.skipWaiting();
 clientsClaim();
 
 precacheAndRoute(self.__WB_MANIFEST || []);
+
+// ── Runtime caching ──────────────────────────────────────────────
+// Rasmlar (mahsulot/logo/cover) — kamdan-kam o'zgaradi, cache-first.
+registerRoute(
+  ({ request }) => request.destination === "image",
+  new CacheFirst({
+    cacheName: "af-images",
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 150,
+        maxAgeSeconds: 30 * 24 * 60 * 60,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  }),
+);
+
+// API GET so'rovlari — onlaynda doim yangi (network-first), oflaynda oxirgi
+// keshlangan javob ishlatiladi. Faqat GET keshlanadi.
+registerRoute(
+  ({ url, request }) => request.method === "GET" && url.pathname.includes("/api/"),
+  new NetworkFirst({
+    cacheName: "af-api",
+    networkTimeoutSeconds: 5,
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 120, maxAgeSeconds: 24 * 60 * 60 }),
+    ],
+  }),
+);
 
 self.addEventListener("push", (event: PushEvent) => {
   let data: { title?: string; body?: string; url?: string; tag?: string } = {};
