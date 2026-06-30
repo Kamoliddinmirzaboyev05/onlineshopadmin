@@ -1,6 +1,6 @@
 import {
   Bike, BarChart3, LayoutDashboard, LogOut, MapPinned, Menu, ReceiptText,
-  ShoppingBasket, Store, Truck, Users, Warehouse, X,
+  Settings, ShoppingBasket, Store, Truck, Users, Warehouse, X,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -19,6 +19,7 @@ const links = [
   { to: "/reports", label: "Hisobot", icon: BarChart3, roles: ["superadmin"] },
   { to: "/users", label: "Foydalanuvchilar", icon: Users, roles: ["superadmin"] },
   { to: "/couriers", label: "Xodimlar", icon: Bike, roles: ["superadmin"] },
+  { to: "/settings", label: "Sozlamalar", icon: Settings, roles: ["superadmin"] },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {

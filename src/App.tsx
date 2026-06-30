@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import OrdersPage from "./pages/OrdersPage";
 import ProductsPage from "./pages/ProductsPage";
 import ReportsPage from "./pages/ReportsPage";
+import SettingsPage from "./pages/SettingsPage";
 import SuppliesPage from "./pages/SuppliesPage";
 import UsersPage from "./pages/UsersPage";
 import WarehousePage from "./pages/WarehousePage";
@@ -87,6 +88,7 @@ export default function App() {
       <Route path="/reports" element={<Protected roles={SUPERADMIN}><ReportsPage /></Protected>} />
       <Route path="/users" element={<Protected roles={SUPERADMIN}><UsersPage /></Protected>} />
       <Route path="/couriers" element={<Protected roles={SUPERADMIN}><CouriersPage /></Protected>} />
+      <Route path="/settings" element={<Protected roles={SUPERADMIN}><SettingsPage /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
