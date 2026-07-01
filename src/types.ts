@@ -19,6 +19,7 @@ export interface Restaurant {
 
 export interface Category {
   id: number;
+  parent_id?: number | null;
   name_uz: string;
   name_ru: string;
   image_url?: string | null;
