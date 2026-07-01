@@ -118,6 +118,7 @@ export default function ProductsPage() {
     try {
       const body = {
         restaurant_id: storeId,
+        parent_id: editCat.parent_id ?? null,
         name_uz: editCat.name_uz,
         name_ru: editCat.name_ru || editCat.name_uz,
         image_url: editCat.image_url ?? null,
@@ -157,7 +158,14 @@ export default function ProductsPage() {
     }
   };
 
-  const catName = (id: number) => categories.find((c) => c.id === id)?.name_uz ?? "—";
+  const topCategories = categories.filter((c) => c.parent_id == null);
+  const subcategories = categories.filter((c) => c.parent_id != null);
+  const catPath = (id: number) => {
+    const c = categories.find((x) => x.id === id);
+    if (!c) return "—";
+    const parent = categories.find((x) => x.id === c.parent_id);
+    return parent ? `${parent.name_uz} > ${c.name_uz}` : c.name_uz;
+  };
   const margin = (p: Product) => (p.price > 0 ? Math.round(((p.price - p.cost) / p.price) * 100) : 0);
 
   return (
@@ -182,9 +190,9 @@ export default function ProductsPage() {
           <div className="flex justify-end mb-4">
             <button
               className="btn"
-              disabled={categories.length === 0}
-              title={categories.length === 0 ? "Avval kategoriya qo'shing" : ""}
-              onClick={() => setEditing({ category_id: categories[0]?.id, is_available: true, price: 0, cost: 0, stock: 0, unit: "dona", low_stock_threshold: 10 })}
+              disabled={subcategories.length === 0}
+              title={subcategories.length === 0 ? "Avval subkategoriya qo'shing" : ""}
+              onClick={() => setEditing({ category_id: subcategories[0]?.id, is_available: true, price: 0, cost: 0, stock: 0, unit: "dona", low_stock_threshold: 10 })}
             >
               <Plus size={18} /> Mahsulot qo'shish
             </button>
@@ -215,7 +223,7 @@ export default function ProductsPage() {
                         {p.name_uz}
                       </div>
                     </td>
-                    <td className="td">{catName(p.category_id)}</td>
+                    <td className="td">{catPath(p.category_id)}</td>
                     <td className="td">{money(p.price)} so'm</td>
                     <td className="td">
                       {money(p.cost)} <span className="text-xs text-slate-400">({margin(p)}%)</span>
@@ -240,7 +248,7 @@ export default function ProductsPage() {
                 ))}
                 {products.length === 0 && (
                   <tr><td colSpan={7} className="td text-center text-slate-400 py-10">
-                    {categories.length === 0 ? "Avval kategoriya qo'shing" : "Mahsulot yo'q"}
+                    {subcategories.length === 0 ? "Avval subkategoriya qo'shing" : "Mahsulot yo'q"}
                   </td></tr>
                 )}
               </tbody>
@@ -258,42 +266,63 @@ export default function ProductsPage() {
           </div>
 
           {err ? <ErrorRetry onRetry={reload} /> : loading ? <TableSkeleton cols={3} /> : (
-          <div className="card overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50">
-                  <th className="th">Nomi (uz)</th>
-                  <th className="th">Название (ru)</th>
-                  <th className="th">Mahsulotlar</th>
-                  <th className="th"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50/60">
-                    <td className="td font-medium text-slate-900">
-                      <div className="flex items-center gap-3">
-                        {c.image_url
-                          ? <img src={c.image_url} alt="" className="h-9 w-12 rounded-lg object-cover bg-slate-100" />
-                          : <span className="h-9 w-12 rounded-lg bg-slate-100" />}
-                        {c.name_uz}
-                      </div>
-                    </td>
-                    <td className="td">{c.name_ru}</td>
-                    <td className="td">{products.filter((p) => p.category_id === c.id).length}</td>
-                    <td className="td text-right">
-                      <div className="inline-flex items-center gap-1">
-                        <button className="icon-btn" title="Tahrirlash" onClick={() => setEditCat(c)}><Pencil size={16} /></button>
-                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeCat(c)}><Trash2 size={16} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {categories.length === 0 && (
-                  <tr><td colSpan={4} className="td text-center text-slate-400 py-10">Kategoriya yo'q — "Qo'shish" bilan qo'shing</td></tr>
+          <div className="space-y-4">
+            {topCategories.map((top) => {
+              const children = categories.filter((c) => c.parent_id === top.id);
+              return (
+              <div key={top.id} className="card overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-100">
+                  <div className="flex items-center gap-3">
+                    {top.image_url
+                      ? <img src={top.image_url} alt="" className="h-9 w-12 rounded-lg object-cover bg-slate-100" />
+                      : <span className="h-9 w-12 rounded-lg bg-slate-100" />}
+                    <div>
+                      <div className="font-semibold text-slate-900">{top.name_uz}</div>
+                      <div className="text-xs text-slate-400">{top.name_ru}</div>
+                    </div>
+                  </div>
+                  <div className="inline-flex items-center gap-1">
+                    <button className="icon-btn" title="Tahrirlash" onClick={() => setEditCat(top)}><Pencil size={16} /></button>
+                    <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeCat(top)}><Trash2 size={16} /></button>
+                    <button className="btn-ghost text-xs" onClick={() => setEditCat({ parent_id: top.id })}>
+                      <Plus size={14} /> Subkategoriya
+                    </button>
+                  </div>
+                </div>
+                {children.length === 0 ? (
+                  <div className="px-4 py-6 text-center text-slate-400 text-sm">Subkategoriya yo'q</div>
+                ) : (
+                  <table className="w-full">
+                    <tbody>
+                      {children.map((c) => (
+                        <tr key={c.id} className="hover:bg-slate-50/60">
+                          <td className="td pl-8 font-medium text-slate-900">
+                            <div className="flex items-center gap-3">
+                              {c.image_url
+                                ? <img src={c.image_url} alt="" className="h-9 w-12 rounded-lg object-cover bg-slate-100" />
+                                : <span className="h-9 w-12 rounded-lg bg-slate-100" />}
+                              {c.name_uz}
+                            </div>
+                          </td>
+                          <td className="td">{c.name_ru}</td>
+                          <td className="td">{products.filter((p) => p.category_id === c.id).length}</td>
+                          <td className="td text-right">
+                            <div className="inline-flex items-center gap-1">
+                              <button className="icon-btn" title="Tahrirlash" onClick={() => setEditCat(c)}><Pencil size={16} /></button>
+                              <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeCat(c)}><Trash2 size={16} /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
-              </tbody>
-            </table>
+              </div>
+              );
+            })}
+            {topCategories.length === 0 && (
+              <div className="card p-10 text-center text-slate-400">Kategoriya yo'q — "Qo'shish" bilan qo'shing</div>
+            )}
           </div>
           )}
         </>
@@ -314,7 +343,13 @@ export default function ProductsPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">Kategoriya</label>
                 <select className="input" value={editing.category_id}
                   onChange={(e) => setEditing({ ...editing, category_id: +e.target.value })}>
-                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name_uz}</option>)}
+                  {topCategories.map((top) => (
+                    <optgroup key={top.id} label={top.name_uz}>
+                      {categories.filter((c) => c.parent_id === top.id).map((c) => (
+                        <option key={c.id} value={c.id}>{c.name_uz}</option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
               </div>
 
@@ -436,7 +471,9 @@ export default function ProductsPage() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="card w-full max-w-lg">
             <div className="px-7 pt-7 pb-4 border-b border-slate-100">
-              <h2 className="font-bold text-xl">{editCat.id ? "Kategoriyani tahrirlash" : "Yangi kategoriya"}</h2>
+              <h2 className="font-bold text-xl">
+                {editCat.id ? "Kategoriyani tahrirlash" : editCat.parent_id ? "Yangi subkategoriya" : "Yangi kategoriya"}
+              </h2>
             </div>
             <div className="px-7 py-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
