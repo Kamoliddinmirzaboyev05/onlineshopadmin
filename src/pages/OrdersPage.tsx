@@ -1,4 +1,4 @@
-import { Check, Clock, MapPin, Navigation, Phone, User, X } from "lucide-react";
+import { Clock, MapPin, Navigation, Phone, User, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { get, patch } from "../api";
@@ -21,18 +21,6 @@ const PILL: Record<OrderStatus, string> = {
   delivering: "bg-blue-100 text-blue-700",
   delivered: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-rose-100 text-rose-700",
-};
-
-// Keyingi qadam: bitta katta tugma. Oqim — Qabul → Tayyorlash → Tayyor →
-// Yetkazishga ber (kuryer kerak) → Yakunlash.
-const NEXT: Record<OrderStatus, { status: OrderStatus; label: string; cls: string } | null> = {
-  pending: { status: "confirmed", label: "Qabul qilish", cls: "bg-emerald-600 hover:bg-emerald-700" },
-  confirmed: { status: "preparing", label: "Tayyorlashni boshlash", cls: "bg-indigo-600 hover:bg-indigo-700" },
-  preparing: { status: "ready", label: "Tayyor", cls: "bg-violet-600 hover:bg-violet-700" },
-  ready: { status: "delivering", label: "Yetkazishga berish", cls: "bg-blue-600 hover:bg-blue-700" },
-  delivering: { status: "delivered", label: "Yakunlash (yetkazildi)", cls: "bg-emerald-600 hover:bg-emerald-700" },
-  delivered: null,
-  cancelled: null,
 };
 
 const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
@@ -80,24 +68,6 @@ export default function OrdersPage() {
     get<AdminUser[]>("/admin/courier-accounts").then(setCouriers).catch(() => {});
   }, []);
 
-  const setStatus = async (o: Order, status: OrderStatus) => {
-    const prev = orders;
-    setBusy(o.id);
-    // Optimistic update, rolled back if the request fails.
-    setOrders((os) => os.map((x) => (x.id === o.id ? { ...x, status } : x)));
-    try {
-      await patch(`/admin/orders/${o.id}`, { status, assigned_courier_id: o.assigned_courier_id });
-      toast.success(`№ ${o.number}: ${LABEL[status]}`);
-      load();
-    } catch {
-      setOrders(prev);
-      setErr(true);
-      toast.error("Holatni o'zgartirib bo'lmadi");
-    } finally {
-      setBusy(null);
-    }
-  };
-
   const cancel = async (o: Order) => {
     const ok = await confirm({
       title: `№ ${o.number} buyurtmani bekor qilasizmi?`,
@@ -107,26 +77,18 @@ export default function OrdersPage() {
       danger: true,
     });
     if (!ok) return;
-    setStatus(o, "cancelled");
-  };
 
-  const assign = async (o: Order, courierId: number | null) => {
     const prev = orders;
     setBusy(o.id);
-    setOrders((os) =>
-      os.map((x) => (x.id === o.id ? { ...x, assigned_courier_id: courierId } : x))
-    );
+    setOrders((os) => os.map((x) => (x.id === o.id ? { ...x, status: "cancelled" } : x)));
     try {
-      await patch(`/admin/orders/${o.id}`, {
-        status: o.status,
-        assigned_courier_id: courierId,
-      });
-      toast.success(courierId ? "Kuryer biriktirildi" : "Kuryer olib tashlandi");
+      await patch(`/admin/orders/${o.id}`, { status: "cancelled" });
+      toast.success(`№ ${o.number}: bekor qilindi`);
       load();
     } catch {
       setOrders(prev);
       setErr(true);
-      toast.error("Kuryerni biriktirib bo'lmadi");
+      toast.error("Bekor qilib bo'lmadi");
     } finally {
       setBusy(null);
     }
@@ -144,7 +106,7 @@ export default function OrdersPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold tracking-tight mb-1">Buyurtmalar</h1>
-      <p className="text-slate-500 mb-5">Qabul qiling → kuryer biriktiring → yetkazib bering</p>
+      <p className="text-slate-500 mb-5">Kuzatuv rejimi — kuryer buyurtmani o'zi qabul qiladi</p>
 
       <div className="flex gap-2 mb-5 flex-wrap">
         <button className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${filter === "" ? "bg-brand text-white shadow-sm" : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"}`}
@@ -158,9 +120,7 @@ export default function OrdersPage() {
       {loading ? <OrderListSkeleton /> : err && orders.length === 0 ? <ErrorRetry onRetry={load} /> : (
       <div className="space-y-4">
         {sorted.map((o) => {
-          const next = NEXT[o.status];
           const isNew = o.status === "pending";
-          const needsCourier = o.status === "ready" && o.assigned_courier_id == null;
           const itemsCount = o.items.reduce((s, it) => s + it.quantity, 0);
           return (
           <div
@@ -209,23 +169,16 @@ export default function OrdersPage() {
               <div className="shrink-0 self-center pl-1 text-xs text-slate-400">{itemsCount} dona</div>
             </div>
 
-            {/* Kuryer biriktirish */}
+            {/* Kuryer holati — faqat kuzatish, kuryer o'zi qabul qiladi */}
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <select
-                className={`border rounded-lg px-2 py-1.5 text-sm bg-white ${needsCourier ? "border-amber-400 ring-1 ring-amber-300" : "border-slate-300"}`}
-                value={o.assigned_courier_id ?? ""}
-                disabled={busy === o.id}
-                onChange={(e) => assign(o, e.target.value ? Number(e.target.value) : null)}
-              >
-                <option value="">Kuryer biriktirish…</option>
-                {couriers.map((c) => (
-                  <option key={c.id} value={c.id}>{c.username}</option>
-                ))}
-              </select>
-              {o.assigned_courier_id && (
+              {o.assigned_courier_id ? (
                 <span className="pill bg-slate-100 text-slate-600 inline-flex items-center gap-1">
                   <User size={12} /> {courierName(o.assigned_courier_id) ?? `#${o.assigned_courier_id}`}
                 </span>
+              ) : (
+                o.status !== "delivered" && o.status !== "cancelled" && (
+                  <span className="pill bg-amber-50 text-amber-600">Kuryer kutilmoqda</span>
+                )
               )}
               {o.lat != null && o.lng != null && (
                 <a
@@ -239,18 +192,7 @@ export default function OrdersPage() {
               )}
             </div>
 
-            {/* Asosiy amal */}
             <div className="mt-3 flex items-center gap-2">
-              {next && (
-                <button
-                  disabled={busy === o.id || needsCourier}
-                  onClick={() => setStatus(o, next.status)}
-                  className={`flex-1 py-2.5 rounded-xl text-white font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5 ${next.cls}`}
-                  title={needsCourier ? "Avval kuryer biriktiring" : ""}
-                >
-                  <Check size={16} /> {needsCourier ? "Avval kuryer biriktiring" : next.label}
-                </button>
-              )}
               {o.status !== "delivered" && o.status !== "cancelled" && (
                 <button
                   disabled={busy === o.id}
