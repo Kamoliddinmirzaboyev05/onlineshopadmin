@@ -1,5 +1,6 @@
 import { AtSign, Camera, Globe, PlayCircle, Plus, Save, Send, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { get, put } from "../api";
 import ImageUpload from "../components/ImageUpload";
 import { ErrorRetry } from "../components/Skeleton";
@@ -18,7 +19,6 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [name, setName] = useState("");
   const [descUz, setDescUz] = useState("");
@@ -62,7 +62,6 @@ export default function SettingsPage() {
 
   const save = async () => {
     setSaving(true);
-    setMsg(null);
     try {
       const cleanSocials = Object.fromEntries(
         Object.entries(socials).filter(([, v]) => v.trim()),
@@ -80,9 +79,9 @@ export default function SettingsPage() {
       });
       setPhones(updated.phones?.length ? updated.phones : [""]);
       setSocials(updated.socials ?? {});
-      setMsg({ ok: true, text: "Saqlandi ✓" });
+      toast.success("Sozlamalar saqlandi");
     } catch {
-      setMsg({ ok: false, text: "Saqlab bo'lmadi" });
+      toast.error("Saqlab bo'lmadi");
     } finally {
       setSaving(false);
     }
@@ -178,12 +177,6 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
-
-          {msg && (
-            <div className={`text-sm rounded-lg px-3 py-2 ${msg.ok ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"}`}>
-              {msg.text}
-            </div>
-          )}
 
           <div className="flex justify-end">
             <button onClick={save} disabled={saving || !name.trim()} className="btn">

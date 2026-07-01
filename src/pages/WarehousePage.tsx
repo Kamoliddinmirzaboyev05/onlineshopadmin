@@ -1,5 +1,6 @@
 import { AlertTriangle, Boxes, CircleCheck, CircleX, Package, PackagePlus } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { get, patch } from "../api";
 import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 import type { Product, Restaurant } from "../types";
@@ -31,12 +32,18 @@ export default function WarehousePage() {
 
   const save = async () => {
     if (!edit) return;
-    await patch(`/admin/products/${edit.id}/stock`, {
-      stock: edit.stock,
-      low_stock_threshold: edit.threshold,
-    });
-    setEdit(null);
-    load();
+    try {
+      await patch(`/admin/products/${edit.id}/stock`, {
+        stock: edit.stock,
+        low_stock_threshold: edit.threshold,
+      });
+      const name = edit.name;
+      setEdit(null);
+      toast.success(`"${name}" qoldig'i yangilandi`);
+      load();
+    } catch {
+      toast.error("Saqlab bo'lmadi");
+    }
   };
 
   const total = products.length;

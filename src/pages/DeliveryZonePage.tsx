@@ -2,6 +2,7 @@ import "leaflet/dist/leaflet.css";
 import { MapPin, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Circle, CircleMarker, MapContainer, TileLayer, useMapEvents } from "react-leaflet";
+import { toast } from "sonner";
 import { get, put } from "../api";
 import type { DeliveryZone } from "../types";
 
@@ -27,7 +28,6 @@ export default function DeliveryZonePage() {
   const [hasCenter, setHasCenter] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => {
     get<DeliveryZone | null>("/admin/delivery-zone")
@@ -49,7 +49,6 @@ export default function DeliveryZonePage() {
 
   const save = async () => {
     setSaving(true);
-    setMsg(null);
     try {
       await put<DeliveryZone>("/admin/delivery-zone", {
         name,
@@ -61,9 +60,9 @@ export default function DeliveryZonePage() {
         radius_km: radiusKm,
       });
       setHasCenter(true);
-      setMsg({ ok: true, text: "Saqlandi ✓" });
+      toast.success("Yetkazish hududi saqlandi");
     } catch {
-      setMsg({ ok: false, text: "Saqlab bo'lmadi" });
+      toast.error("Saqlab bo'lmadi");
     } finally {
       setSaving(false);
     }
@@ -166,16 +165,6 @@ export default function DeliveryZonePage() {
             <p className="text-xs text-amber-600 flex items-center gap-1">
               <MapPin size={13} /> Markaz belgilanmagan — xaritani bosing.
             </p>
-          )}
-
-          {msg && (
-            <div
-              className={`text-sm rounded-lg px-3 py-2 ${
-                msg.ok ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"
-              }`}
-            >
-              {msg.text}
-            </div>
           )}
 
           <button onClick={save} disabled={saving} className="btn w-full justify-center">

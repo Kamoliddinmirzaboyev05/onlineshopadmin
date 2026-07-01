@@ -1,6 +1,8 @@
 import { Bike, CircleCheck, CircleX, Plus, PowerOff, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { del, get, patch, post } from "../api";
+import { confirm } from "../components/Confirm";
 import { TableSkeleton } from "../components/Skeleton";
 import type { AdminUser } from "../types";
 
@@ -11,7 +13,6 @@ interface CourierAccount extends AdminUser {
 export default function CouriersPage() {
   const [accounts, setAccounts] = useState<CourierAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<{
     username: string;
     password: string;
@@ -35,21 +36,38 @@ export default function CouriersPage() {
     try {
       await post("/admin/admin-users", form);
       setForm(null);
+      toast.success("Xodim yaratildi");
       load();
     } catch (e) {
       setErr(String(e));
     }
   };
 
-  const toggle = async (id: number) => {
-    await patch(`/admin/admin-users/${id}/toggle`, {});
-    load();
+  const toggle = async (u: CourierAccount) => {
+    try {
+      await patch(`/admin/admin-users/${u.id}/toggle`, {});
+      toast.success(u.is_active ? "Xodim bloklandi" : "Xodim aktivlashtirildi");
+      load();
+    } catch {
+      toast.error("Amalni bajarib bo'lmadi");
+    }
   };
 
-  const remove = async (id: number) => {
-    await del(`/admin/admin-users/${id}`);
-    setDeleteId(null);
-    load();
+  const remove = async (u: CourierAccount) => {
+    const ok = await confirm({
+      title: `"${u.username}" xodimni o'chirasizmi?`,
+      message: "Bu akkaunt butunlay o'chiriladi.",
+      confirmText: "O'chirish",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await del(`/admin/admin-users/${u.id}`);
+      toast.success("Xodim o'chirildi");
+      load();
+    } catch {
+      toast.error("O'chirib bo'lmadi");
+    }
   };
 
   const ROLE_LABEL: Record<string, string> = {
@@ -120,27 +138,17 @@ export default function CouriersPage() {
                       <button
                         className="icon-btn"
                         title={u.is_active ? "Bloklash" : "Aktivlashtirish"}
-                        onClick={() => toggle(u.id)}
+                        onClick={() => toggle(u)}
                       >
                         <PowerOff size={15} className={u.is_active ? "text-amber-500" : "text-emerald-500"} />
                       </button>
-                      {deleteId === u.id ? (
-                        <>
-                          <button className="icon-btn text-red-600" onClick={() => remove(u.id)}>
-                            <CircleCheck size={16} />
-                          </button>
-                          <button className="icon-btn" onClick={() => setDeleteId(null)}>
-                            <CircleX size={16} />
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          className="icon-btn hover:text-red-600"
-                          onClick={() => setDeleteId(u.id)}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      )}
+                      <button
+                        className="icon-btn hover:text-red-600"
+                        title="O'chirish"
+                        onClick={() => remove(u)}
+                      >
+                        <Trash2 size={15} />
+                      </button>
                     </div>
                   </td>
                 </tr>

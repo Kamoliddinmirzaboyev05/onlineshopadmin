@@ -1,6 +1,8 @@
 import { Ban, ShieldCheck, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { del, get, patch } from "../api";
+import { confirm } from "../components/Confirm";
 import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 
 interface UserRow {
@@ -37,8 +39,9 @@ export default function UsersPage() {
         blocked: !u.is_blocked,
       });
       setItems((prev) => prev.map((x) => (x.id === u.id ? updated : x)));
+      toast.success(updated.is_blocked ? "Foydalanuvchi bloklandi" : "Blokdan chiqarildi");
     } catch {
-      alert("Amalni bajarib bo'lmadi");
+      toast.error("Amalni bajarib bo'lmadi");
     } finally {
       setBusy(null);
     }
@@ -46,13 +49,20 @@ export default function UsersPage() {
 
   const remove = async (u: UserRow) => {
     const label = u.first_name || u.username || `#${u.id}`;
-    if (!confirm(`"${label}" foydalanuvchini butunlay o'chirasizmi?\nBarcha buyurtmalari ham o'chadi. Bu amalni qaytarib bo'lmaydi.`)) return;
+    const ok = await confirm({
+      title: `"${label}" foydalanuvchini o'chirasizmi?`,
+      message: "Barcha buyurtmalari ham o'chadi. Bu amalni qaytarib bo'lmaydi.",
+      confirmText: "O'chirish",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(u.id);
     try {
       await del(`/admin/users/${u.id}`);
       setItems((prev) => prev.filter((x) => x.id !== u.id));
+      toast.success("Foydalanuvchi o'chirildi");
     } catch {
-      alert("O'chirib bo'lmadi");
+      toast.error("O'chirib bo'lmadi");
     } finally {
       setBusy(null);
     }

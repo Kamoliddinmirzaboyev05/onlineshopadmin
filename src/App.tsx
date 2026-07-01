@@ -1,7 +1,9 @@
 import { ShieldX } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Toaster } from "sonner";
 import { hasToken, setToken } from "./api";
+import { ConfirmHost } from "./components/Confirm";
 import Layout from "./components/Layout";
 import CouriersPage from "./pages/CouriersPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -77,7 +79,15 @@ const SUPERADMIN = ["superadmin"];
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        toastOptions={{ style: { borderRadius: "12px" } }}
+      />
+      <ConfirmHost />
+      <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<Protected><DashboardPage /></Protected>} />
       <Route path="/orders" element={<Protected><OrdersPage /></Protected>} />
@@ -90,6 +100,7 @@ export default function App() {
       <Route path="/couriers" element={<Protected roles={SUPERADMIN}><CouriersPage /></Protected>} />
       <Route path="/settings" element={<Protected roles={SUPERADMIN}><SettingsPage /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }

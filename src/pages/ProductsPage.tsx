@@ -1,6 +1,8 @@
 import { CircleCheck, CircleX, FolderTree, Pencil, Plus, ShoppingBasket, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { del, get, post, put } from "../api";
+import { confirm } from "../components/Confirm";
 import ImageUpload from "../components/ImageUpload";
 import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 import type { Category, Product, Restaurant } from "../types";
@@ -36,8 +38,6 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [delProd, setDelProd] = useState<number | null>(null);
-  const [delCat, setDelCat] = useState<number | null>(null);
 
   const loadData = async (sid: number) => {
     setErr(false);
@@ -83,10 +83,32 @@ export default function ProductsPage() {
       };
       if (editing.id) await put(`/admin/products/${editing.id}`, body);
       else await post("/admin/products", body);
+      const isEdit = !!editing.id;
       setEditing(null);
       await loadData(storeId);
+      toast.success(isEdit ? "Mahsulot yangilandi" : "Mahsulot qo'shildi");
+    } catch {
+      toast.error("Saqlab bo'lmadi");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const removeProduct = async (p: Product) => {
+    if (!storeId) return;
+    const ok = await confirm({
+      title: `"${p.name_uz}" o'chirilsinmi?`,
+      message: "Mahsulot ro'yxatdan olib tashlanadi.",
+      confirmText: "O'chirish",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await del(`/admin/products/${p.id}`);
+      await loadData(storeId);
+      toast.success("Mahsulot o'chirildi");
+    } catch {
+      toast.error("O'chirib bo'lmadi");
     }
   };
 
@@ -103,10 +125,35 @@ export default function ProductsPage() {
       };
       if (editCat.id) await put(`/admin/categories/${editCat.id}`, body);
       else await post("/admin/categories", body);
+      const isEdit = !!editCat.id;
       setEditCat(null);
       await loadData(storeId);
+      toast.success(isEdit ? "Kategoriya yangilandi" : "Kategoriya qo'shildi");
+    } catch {
+      toast.error("Saqlab bo'lmadi");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const removeCat = async (c: Category) => {
+    if (!storeId) return;
+    const count = products.filter((p) => p.category_id === c.id).length;
+    const ok = await confirm({
+      title: `"${c.name_uz}" kategoriyasi o'chirilsinmi?`,
+      message: count
+        ? `Bu kategoriyada ${count} ta mahsulot bor.`
+        : undefined,
+      confirmText: "O'chirish",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await del(`/admin/categories/${c.id}`);
+      await loadData(storeId);
+      toast.success("Kategoriya o'chirildi");
+    } catch {
+      toast.error("O'chirib bo'lmadi");
     }
   };
 
@@ -185,18 +232,8 @@ export default function ProductsPage() {
                     </td>
                     <td className="td text-right">
                       <div className="inline-flex items-center gap-1">
-                        {delProd === p.id ? (
-                          <>
-                            <button className="icon-btn text-red-600 hover:bg-red-50" title="Tasdiqlash"
-                              onClick={() => storeId && del(`/admin/products/${p.id}`).then(() => { setDelProd(null); loadData(storeId); })}><CircleCheck size={16} /></button>
-                            <button className="icon-btn" title="Bekor" onClick={() => setDelProd(null)}><CircleX size={16} /></button>
-                          </>
-                        ) : (
-                          <>
-                            <button className="icon-btn" title="Tahrirlash" onClick={() => setEditing(p)}><Pencil size={16} /></button>
-                            <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => setDelProd(p.id)}><Trash2 size={16} /></button>
-                          </>
-                        )}
+                        <button className="icon-btn" title="Tahrirlash" onClick={() => setEditing(p)}><Pencil size={16} /></button>
+                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeProduct(p)}><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>
@@ -246,18 +283,8 @@ export default function ProductsPage() {
                     <td className="td">{products.filter((p) => p.category_id === c.id).length}</td>
                     <td className="td text-right">
                       <div className="inline-flex items-center gap-1">
-                        {delCat === c.id ? (
-                          <>
-                            <button className="icon-btn text-red-600 hover:bg-red-50" title="Tasdiqlash"
-                              onClick={() => storeId && del(`/admin/categories/${c.id}`).then(() => { setDelCat(null); loadData(storeId); })}><CircleCheck size={16} /></button>
-                            <button className="icon-btn" title="Bekor" onClick={() => setDelCat(null)}><CircleX size={16} /></button>
-                          </>
-                        ) : (
-                          <>
-                            <button className="icon-btn" title="Tahrirlash" onClick={() => setEditCat(c)}><Pencil size={16} /></button>
-                            <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => setDelCat(c.id)}><Trash2 size={16} /></button>
-                          </>
-                        )}
+                        <button className="icon-btn" title="Tahrirlash" onClick={() => setEditCat(c)}><Pencil size={16} /></button>
+                        <button className="icon-btn hover:text-red-600" title="O'chirish" onClick={() => removeCat(c)}><Trash2 size={16} /></button>
                       </div>
                     </td>
                   </tr>

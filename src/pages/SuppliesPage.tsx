@@ -1,6 +1,8 @@
 import { CircleCheck, CircleX, Plus, Trash2, TruckIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { del, get, post } from "../api";
+import { confirm } from "../components/Confirm";
 import { ErrorRetry, TableSkeleton } from "../components/Skeleton";
 import type { Product, Restaurant, SupplyRecord } from "../types";
 
@@ -14,7 +16,6 @@ export default function SuppliesPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState<{
     product_id: number;
     supplier_name: string;
@@ -59,18 +60,34 @@ export default function SuppliesPage() {
 
   const save = async () => {
     if (!form || !form.supplier_name.trim()) return;
-    await post("/admin/supplies", {
-      ...form,
-      notes: form.notes || null,
-    });
-    setForm(null);
-    load();
+    try {
+      await post("/admin/supplies", {
+        ...form,
+        notes: form.notes || null,
+      });
+      setForm(null);
+      toast.success("Yetkazib berish qo'shildi");
+      load();
+    } catch {
+      toast.error("Saqlab bo'lmadi");
+    }
   };
 
-  const remove = async (id: number) => {
-    await del(`/admin/supplies/${id}`);
-    setDeleteId(null);
-    load();
+  const remove = async (r: SupplyRecord) => {
+    const ok = await confirm({
+      title: "Yozuvni o'chirasizmi?",
+      message: `${r.product_name} — ${r.supplier_name}. Ombor qoldig'i tegishli miqdorga kamayadi.`,
+      confirmText: "O'chirish",
+      danger: true,
+    });
+    if (!ok) return;
+    try {
+      await del(`/admin/supplies/${r.id}`);
+      toast.success("Yozuv o'chirildi");
+      load();
+    } catch {
+      toast.error("O'chirib bo'lmadi");
+    }
   };
 
   const totalSpend = supplies.reduce((s, r) => s + r.total_cost, 0);
@@ -125,24 +142,13 @@ export default function SuppliesPage() {
                   <td className="td font-semibold text-emerald-700">{money(r.total_cost)} so'm</td>
                   <td className="td text-slate-400 text-sm max-w-[140px] truncate">{r.notes ?? "—"}</td>
                   <td className="td text-right">
-                    {deleteId === r.id ? (
-                      <div className="inline-flex items-center gap-1">
-                        <button className="icon-btn text-red-600 hover:bg-red-50" onClick={() => remove(r.id)}>
-                          <CircleCheck size={16} />
-                        </button>
-                        <button className="icon-btn" onClick={() => setDeleteId(null)}>
-                          <CircleX size={16} />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        className="icon-btn hover:text-red-600"
-                        title="O'chirish"
-                        onClick={() => setDeleteId(r.id)}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                    <button
+                      className="icon-btn hover:text-red-600"
+                      title="O'chirish"
+                      onClick={() => remove(r)}
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,8 @@
 import { Check, Clock, MapPin, Navigation, Phone, User, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { get, patch } from "../api";
+import { confirm } from "../components/Confirm";
 import { ErrorRetry, OrderListSkeleton } from "../components/Skeleton";
 import type { AdminUser, Order, OrderStatus } from "../types";
 
@@ -85,13 +87,27 @@ export default function OrdersPage() {
     setOrders((os) => os.map((x) => (x.id === o.id ? { ...x, status } : x)));
     try {
       await patch(`/admin/orders/${o.id}`, { status, assigned_courier_id: o.assigned_courier_id });
+      toast.success(`№ ${o.number}: ${LABEL[status]}`);
       load();
     } catch {
       setOrders(prev);
       setErr(true);
+      toast.error("Holatni o'zgartirib bo'lmadi");
     } finally {
       setBusy(null);
     }
+  };
+
+  const cancel = async (o: Order) => {
+    const ok = await confirm({
+      title: `№ ${o.number} buyurtmani bekor qilasizmi?`,
+      message: "Buyurtma bekor qilinadi. Bu amalni qaytarib bo'lmaydi.",
+      confirmText: "Bekor qilish",
+      cancelText: "Yo'q",
+      danger: true,
+    });
+    if (!ok) return;
+    setStatus(o, "cancelled");
   };
 
   const assign = async (o: Order, courierId: number | null) => {
@@ -105,10 +121,12 @@ export default function OrdersPage() {
         status: o.status,
         assigned_courier_id: courierId,
       });
+      toast.success(courierId ? "Kuryer biriktirildi" : "Kuryer olib tashlandi");
       load();
     } catch {
       setOrders(prev);
       setErr(true);
+      toast.error("Kuryerni biriktirib bo'lmadi");
     } finally {
       setBusy(null);
     }
@@ -236,7 +254,7 @@ export default function OrdersPage() {
               {o.status !== "delivered" && o.status !== "cancelled" && (
                 <button
                   disabled={busy === o.id}
-                  onClick={() => setStatus(o, "cancelled")}
+                  onClick={() => cancel(o)}
                   className="px-3 py-2.5 rounded-xl border border-rose-200 text-rose-600 text-sm font-medium hover:bg-rose-50 transition inline-flex items-center gap-1 disabled:opacity-40"
                 >
                   <X size={15} /> Bekor

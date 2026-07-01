@@ -39,6 +39,16 @@ body {
   }
 }
 
+/* Modal enter animations (Confirm host + page modals can reuse). */
+@keyframes fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pop {
+  from { opacity: 0; transform: translateY(8px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Responsive: any card wrapping a table scrolls horizontally on narrow
    screens. `.card:has(table)` (0,2,0) outranks the `.overflow-hidden`
    utility (0,1,0), so it overrides without editing each page. */
