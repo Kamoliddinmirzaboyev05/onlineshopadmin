@@ -15,7 +15,9 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
       },
-      devOptions: { enabled: true, type: "module" },
+      // Dev'da SW o'chirilgan: eski keshlangan bundle/API javoblari yangi
+      // kodni "CORS xatosi"day ko'rsatib xato diagnostika qildirar edi.
+      devOptions: { enabled: false, type: "module" },
       manifest: {
         name: "All Foods — Admin",
         short_name: "AF Admin",
