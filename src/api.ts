@@ -22,7 +22,9 @@ export async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { ...opts, headers });
   if (res.status === 401) {
     setToken(null);
-    location.href = "/login";
+    // Login so'rovining o'zi 401 qaytarsa (xato login/parol) — sahifani
+    // qayta yuklamaymiz, chaqiruvchi (LoginPage) xatoni o'zi ko'rsatadi.
+    if (path !== "/admin/auth/login") location.href = "/login";
     throw new Error("Unauthorized");
   }
   if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
