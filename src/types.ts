@@ -46,7 +46,7 @@ export interface Product {
 
 export type OrderStatus =
   | "pending" | "confirmed" | "preparing" | "ready"
-  | "delivering" | "delivered" | "cancelled";
+  | "accepted" | "delivering" | "delivered" | "cancelled";
 
 export interface OrderItem {
   id: number;

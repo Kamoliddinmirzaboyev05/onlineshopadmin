@@ -1,4 +1,4 @@
-import { Clock, MapPin, Navigation, Phone, User, X } from "lucide-react";
+import { MapPin, Navigation, Phone, User, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { get, patch } from "../api";
@@ -7,17 +7,19 @@ import { ErrorRetry, OrderListSkeleton } from "../components/Skeleton";
 import type { AdminUser, Order, OrderStatus } from "../types";
 
 const STATUSES: OrderStatus[] = [
-  "pending", "confirmed", "preparing", "ready", "delivering", "delivered", "cancelled",
+  "pending", "confirmed", "preparing", "ready", "accepted", "delivering", "delivered", "cancelled",
 ];
 const LABEL: Record<OrderStatus, string> = {
   pending: "Yangi", confirmed: "Tasdiqlandi", preparing: "Tayyorlanmoqda",
-  ready: "Tayyor", delivering: "Yetkazilmoqda", delivered: "Yetkazildi", cancelled: "Bekor",
+  ready: "Tayyor", accepted: "Kuryer qabul qildi", delivering: "Yetkazilmoqda",
+  delivered: "Yetkazildi", cancelled: "Bekor",
 };
 const PILL: Record<OrderStatus, string> = {
   pending: "bg-amber-100 text-amber-700",
   confirmed: "bg-sky-100 text-sky-700",
   preparing: "bg-indigo-100 text-indigo-700",
   ready: "bg-violet-100 text-violet-700",
+  accepted: "bg-cyan-100 text-cyan-700",
   delivering: "bg-blue-100 text-blue-700",
   delivered: "bg-emerald-100 text-emerald-700",
   cancelled: "bg-rose-100 text-rose-700",
@@ -27,7 +29,8 @@ const money = (n: number) => n.toLocaleString("ru-RU").replace(/,/g, " ");
 
 // Yangi/faol buyurtmalar tepada; yakunlanganlar pastda.
 const RANK: Record<OrderStatus, number> = {
-  pending: 0, confirmed: 1, preparing: 2, ready: 3, delivering: 4, delivered: 5, cancelled: 6,
+  pending: 0, confirmed: 1, preparing: 2, ready: 3, accepted: 4,
+  delivering: 5, delivered: 6, cancelled: 7,
 };
 
 export default function OrdersPage() {
@@ -132,11 +135,6 @@ export default function OrdersPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold">№ {o.number}</span>
                   <span className={`pill ${PILL[o.status]}`}>{LABEL[o.status]}</span>
-                  {o.status === "delivering" && o.courier_delivered_at && (
-                    <span className="pill bg-amber-100 text-amber-700 inline-flex items-center gap-1">
-                      <Clock size={11} /> Mijoz tasdig'i kutilmoqda
-                    </span>
-                  )}
                 </div>
                 <div className="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
                   <MapPin size={14} className="shrink-0" /> {o.address_line}
