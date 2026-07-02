@@ -211,6 +211,11 @@ export default function ProductsPage() {
 
   const topCategories = categories.filter((c) => c.parent_id == null);
   const subcategories = categories.filter((c) => c.parent_id != null);
+  // Mahsulot modalidagi "Kategoriya" tanlovi alohida saqlanmaydi — tanlangan
+  // subkategoriyaning ota-kategoriyasidan chiqarib olinadi (yagona haqiqat manbai).
+  const selectedTopId = categories.find((c) => c.id === editing?.category_id)?.parent_id
+    ?? topCategories[0]?.id;
+  const childrenOfSelectedTop = categories.filter((c) => c.parent_id === selectedTopId);
   const catPath = (id: number) => {
     const c = categories.find((x) => x.id === id);
     if (!c) return "—";
@@ -425,37 +430,58 @@ export default function ProductsPage() {
             </div>
 
             <div className="px-7 py-5 space-y-5 overflow-y-auto flex-1">
-              {/* Kategoriya */}
+              {/* Kategoriya → Subkategoriya (bosqichma-bosqich) */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Subkategoriya</label>
-                <div className="flex gap-2">
-                  <select
-                    className="input flex-1"
-                    value={editing.category_id ?? ""}
-                    disabled={subcategories.length === 0}
-                    onChange={(e) => setEditing({ ...editing, category_id: +e.target.value })}
-                  >
-                    {subcategories.length === 0 ? (
-                      <option value="">Subkategoriya yo'q</option>
-                    ) : (
-                      topCategories.map((top) => (
-                        <optgroup key={top.id} label={top.name_uz}>
-                          {categories.filter((c) => c.parent_id === top.id).map((c) => (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Kategoriya</label>
+                    <select
+                      className="input w-full"
+                      disabled={topCategories.length === 0}
+                      value={selectedTopId ?? ""}
+                      onChange={(e) => {
+                        const topId = +e.target.value;
+                        const firstChild = categories.find((c) => c.parent_id === topId);
+                        setEditing({ ...editing, category_id: firstChild?.id });
+                      }}
+                    >
+                      {topCategories.length === 0 ? (
+                        <option value="">Kategoriya yo'q</option>
+                      ) : (
+                        topCategories.map((top) => (
+                          <option key={top.id} value={top.id}>{top.name_uz}</option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Subkategoriya</label>
+                    <div className="flex gap-2">
+                      <select
+                        className="input flex-1"
+                        disabled={childrenOfSelectedTop.length === 0}
+                        value={editing.category_id ?? ""}
+                        onChange={(e) => setEditing({ ...editing, category_id: +e.target.value })}
+                      >
+                        {childrenOfSelectedTop.length === 0 ? (
+                          <option value="">Subkategoriya yo'q</option>
+                        ) : (
+                          childrenOfSelectedTop.map((c) => (
                             <option key={c.id} value={c.id}>{c.name_uz}</option>
-                          ))}
-                        </optgroup>
-                      ))
-                    )}
-                  </select>
-                  <button
-                    type="button"
-                    className="icon-btn shrink-0"
-                    title="Yangi subkategoriya"
-                    disabled={topCategories.length === 0}
-                    onClick={() => setQuickSub((cur) => (cur ? null : { parent_id: topCategories[0]?.id }))}
-                  >
-                    <Plus size={18} />
-                  </button>
+                          ))
+                        )}
+                      </select>
+                      <button
+                        type="button"
+                        className="icon-btn shrink-0"
+                        title="Yangi subkategoriya"
+                        disabled={topCategories.length === 0}
+                        onClick={() => setQuickSub((cur) => (cur ? null : { parent_id: selectedTopId ?? topCategories[0]?.id }))}
+                      >
+                        <Plus size={18} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {quickSub && (

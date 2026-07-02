@@ -1,9 +1,10 @@
-import { AtSign, Camera, Globe, PlayCircle, Plus, Save, Send, Trash2 } from "lucide-react";
+import { AtSign, Camera, Globe, KeyRound, PlayCircle, Plus, Save, Send, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { get, put } from "../api";
 import ImageUpload from "../components/ImageUpload";
 import { ErrorRetry } from "../components/Skeleton";
+import { useAuth } from "../store";
 import type { Restaurant } from "../types";
 
 // Qo'llab-quvvatlanadigan ijtimoiy tarmoqlar (key backendda socials obyekti kaliti).
@@ -16,9 +17,15 @@ const SOCIALS: { key: string; label: string; icon: typeof Globe; placeholder: st
 ];
 
 export default function SettingsPage() {
+  const { changePassword } = useAuth();
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const [oldPw, setOldPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
 
   const [name, setName] = useState("");
   const [descUz, setDescUz] = useState("");
@@ -84,6 +91,33 @@ export default function SettingsPage() {
       toast.error("Saqlab bo'lmadi");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const submitPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPw.length < 6) {
+      toast.error("Yangi parol kamida 6 ta belgi bo'lsin");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast.error("Parollar mos kelmadi");
+      return;
+    }
+    setPwSaving(true);
+    try {
+      await changePassword(oldPw, newPw);
+      toast.success("Parol o'zgartirildi");
+      setOldPw("");
+      setNewPw("");
+      setConfirmPw("");
+    } catch (err) {
+      const raw = String(err);
+      if (raw.includes("Eski parol")) toast.error("Eski parol noto'g'ri");
+      else if (raw.includes("farq qilishi")) toast.error("Yangi parol eskisidan farq qilsin");
+      else toast.error("Parolni o'zgartirib bo'lmadi");
+    } finally {
+      setPwSaving(false);
     }
   };
 
@@ -183,6 +217,50 @@ export default function SettingsPage() {
               <Save size={16} /> {saving ? "Saqlanmoqda…" : "Saqlash"}
             </button>
           </div>
+
+          {/* Parolni o'zgartirish */}
+          <form onSubmit={submitPassword} className="card p-5 space-y-4">
+            <h2 className="font-semibold text-slate-800 flex items-center gap-1.5">
+              <KeyRound size={16} /> Parolni o'zgartirish
+            </h2>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Eski parol</label>
+                <input
+                  className="input"
+                  type="password"
+                  value={oldPw}
+                  onChange={(e) => setOldPw(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Yangi parol</label>
+                <input
+                  className="input"
+                  type="password"
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Yangi parolni takrorlang</label>
+                <input
+                  className="input"
+                  type="password"
+                  value={confirmPw}
+                  onChange={(e) => setConfirmPw(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button type="submit" disabled={pwSaving} className="btn">
+                <KeyRound size={16} /> {pwSaving ? "Saqlanmoqda…" : "Parolni saqlash"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
